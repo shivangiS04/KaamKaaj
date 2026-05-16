@@ -320,12 +320,6 @@ Achievement reports include:
 - Run `supabase/sync_profiles.sql` to sync profile IDs with auth.users IDs
 - Check that there are no spaces in `.env` file around the `=` sign
 
-### RLS Policy Errors (Currently Disabled for Testing)
-- RLS is currently disabled on all tables for easier testing
-- To enable RLS, run the appropriate SQL commands in Supabase SQL Editor
-- Ensure users have correct roles in profiles table
-- Check manager_id relationships are set correctly
-
 ## License
 
 MIT License - Built for AtomQuest Hackathon
