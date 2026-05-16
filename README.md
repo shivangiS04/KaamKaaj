@@ -2,11 +2,11 @@
 
 A production-ready web application for corporate goal setting and quarterly performance tracking, built for hackathons.
 
-## 🎯 Overview
+## Overview
 
 This portal enables employees to set quarterly goals, managers to review and approve those goals, and administrators to manage the entire goal-setting cycle. The system supports three distinct user roles with role-specific dashboards and workflows.
 
-## 🚀 Tech Stack
+## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS
 - **Backend**: Supabase (PostgreSQL + Row-Level Security + Auth)
@@ -14,37 +14,37 @@ This portal enables employees to set quarterly goals, managers to review and app
 - **Hosting**: Vercel (frontend)
 - **Email**: Resend.com (bonus feature)
 
-## 📋 Features
+## Features
 
 ### Employee Features
-- ✅ Goal creation with validation (100% total weightage, 10% min per goal, max 8 goals)
-- ✅ My Goals page with status tracking (Draft/Submitted/Approved/Returned)
-- ✅ Quarterly achievement input with auto-computed scores
-- ✅ Support for 4 UoM types: Numeric Min/Max, Timeline, Zero-based
+- Goal creation with validation (100% total weightage, 10% min per goal, max 8 goals)
+- My Goals page with status tracking (Draft/Submitted/Approved/Returned)
+- Quarterly achievement input with auto-computed scores
+- Support for 4 UoM types: Numeric Min/Max, Timeline, Zero-based
 
 ### Manager Features
-- ✅ Team goal review dashboard
-- ✅ Goal approval workflow (approve or return with comments)
-- ✅ Quarterly check-in module with historical comments
-- ✅ Inline editing of goals before approval
+- Team goal review dashboard
+- Goal approval workflow (approve or return with comments)
+- Quarterly check-in module with historical comments
+- Inline editing of goals before approval
 
 ### Admin Features
-- ✅ User management (roles, reporting lines, invites)
-- ✅ Goal cycle management
-- ✅ Goal unlock capability with audit logging
-- ✅ Completion dashboard with real-time statistics
-- ✅ Achievement report with CSV export
-- ✅ Audit log viewer
+- User management (roles, reporting lines, invites)
+- Goal cycle management
+- Goal unlock capability with audit logging
+- Completion dashboard with real-time statistics
+- Achievement report with CSV export
+- Audit log viewer
 
 ### Advanced Features
-- ✅ Shared goals (push goals to multiple employees)
-- ✅ Check-in schedule enforcement (quarterly windows)
-- ✅ Row-Level Security (RLS) for data access control
-- ✅ Automatic audit logging for all changes
-- ✅ Analytics dashboard with charts (bonus)
-- ✅ Email notifications (bonus)
+- Shared goals (push goals to multiple employees)
+- Check-in schedule enforcement (quarterly windows)
+- Row-Level Security (RLS) for data access control
+- Automatic audit logging for all changes
+- Analytics dashboard with charts (bonus)
+- Email notifications (bonus)
 
-## 🔐 Demo Credentials
+## Demo Credentials
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -52,7 +52,7 @@ This portal enables employees to set quarterly goals, managers to review and app
 | **Manager** | manager1@demo.com | Manager@123 |
 | **Employee** | employee1@demo.com | Employee@123 |
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ This portal enables employees to set quarterly goals, managers to review and app
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── src/
@@ -126,7 +126,7 @@ This portal enables employees to set quarterly goals, managers to review and app
     └── architecture.md      # Detailed architecture diagram
 ```
 
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ### 1. Clone the Repository
 
@@ -182,7 +182,7 @@ npm run dev
 
 Visit `http://localhost:5173` (or the port shown in terminal) and log in with demo credentials.
 
-## 🧪 Testing the Application
+## Testing the Application
 
 ### Test Goal Creation (Example Data)
 
@@ -226,7 +226,7 @@ When creating goals as an employee, use these examples:
 5. Export achievement reports as CSV
 6. View audit logs
 
-## 📊 Score Calculation
+## Score Calculation
 
 ### Numeric Min (Higher is Better)
 ```
@@ -252,7 +252,7 @@ score = actual_value === 0 ? 100% : 0%
 Example: Target 0, Actual 0 → Score = 100%
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Deploy to Vercel
 
@@ -265,17 +265,17 @@ Set environment variables in Vercel dashboard:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-## 📝 Validation Rules
+## Validation Rules
 
-- ✅ Total weightage must equal exactly 100%
-- ✅ Each goal minimum weightage: 10%
-- ✅ Maximum 8 goals per employee per cycle
-- ✅ Timeline goals require target date
-- ✅ Numeric goals require target value
-- ✅ Goals locked after manager approval
-- ✅ Achievement input only during check-in windows
+- Total weightage must equal exactly 100%
+- Each goal minimum weightage: 10%
+- Maximum 8 goals per employee per cycle
+- Timeline goals require target date
+- Numeric goals require target value
+- Goals locked after manager approval
+- Achievement input only during check-in windows
 
-## 🔒 Security
+## Security
 
 - Row-Level Security (RLS) enforced on all tables
 - No admin keys exposed on frontend
@@ -283,7 +283,7 @@ Set environment variables in Vercel dashboard:
 - Audit logging for all critical changes
 - Protected routes with authentication checks
 
-## 📦 CSV Export Format
+## CSV Export Format
 
 Achievement reports include:
 - Employee Name & Email
@@ -294,7 +294,7 @@ Achievement reports include:
 - Progress Status & Score
 - Cycle Year & Phase
 
-## 🎨 UI/UX Features
+## UI/UX Features
 
 - Clean, minimalist design with Tailwind CSS
 - Responsive (desktop & tablet)
@@ -305,7 +305,7 @@ Achievement reports include:
 - Status badges (Draft/Submitted/Approved/Returned)
 - Color-coded completion indicators
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "No active goal cycle found"
 - Admin needs to create and activate a goal cycle
@@ -326,10 +326,10 @@ Achievement reports include:
 - Ensure users have correct roles in profiles table
 - Check manager_id relationships are set correctly
 
-## 📄 License
+## License
 
 MIT License - Built for AtomQuest Hackathon
 
-## 👥 Contributors
+---
 
-Built with ❤️ for corporate performance management
+Made with care by Shivangi Singh
