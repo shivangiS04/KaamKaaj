@@ -16,6 +16,7 @@ import { GoalUnlock } from './pages/GoalUnlock';
 import { CompletionDashboard } from './pages/CompletionDashboard';
 import { AchievementReport } from './pages/AchievementReport';
 import { AuditLogViewer } from './pages/AuditLogViewer';
+import { ApprovedGoals } from './pages/ApprovedGoals';
 
 function App() {
   return (
@@ -83,6 +84,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/manager/shared-goals"
+            element={
+              <ProtectedRoute allowedRoles={['manager']}>
+                <ApprovedGoals backPath="/manager" isAdmin={false} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Admin Routes */}
           <Route
@@ -138,6 +147,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AuditLogViewer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/shared-goals"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ApprovedGoals backPath="/admin" isAdmin={true} />
               </ProtectedRoute>
             }
           />

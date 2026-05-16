@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { calculateScore } from '../utils/scoreCalculator';
+import { validateCheckinWindow } from '../utils/checkinWindow';
 
 interface Goal {
   id: string;
@@ -60,20 +62,9 @@ export const AchievementInput: React.FC = () => {
         .eq('is_active', true)
         .single();
 
-      if (!cycle) {
-        setCheckInWindow({ open: false, message: 'No active goal cycle found' });
-        return;
-      }
-
-      const now = new Date();
-      const windowOpen = new Date(cycle.window_open_date);
-      const windowClose = new Date(cycle.window_close_date);
-
-      if (now < windowOpen || now > windowClose) {
-        setCheckInWindow({
-          open: false,
-          message: `Check-in window is closed. Next window opens on ${windowOpen.toLocaleDateString()}`,
-        });
+      const validation = validateCheckinWindow(cycle);
+      if (!validation.allowed) {
+        setCheckInWindow({ open: false, message: validation.message });
       } else {
         setCheckInWindow({ open: true, message: '' });
       }
@@ -118,26 +109,14 @@ export const AchievementInput: React.FC = () => {
     }
   };
 
-  const computeScore = (goal: Goal, achievement: Achievement): number | null => {
-    if (goal.uom_type === 'numeric_max') {
-      if (!achievement.actual_value || !goal.target_value) return null;
-      const score = (achievement.actual_value / goal.target_value) * 100;
-      return Math.min(score, 100);
-    } else if (goal.uom_type === 'numeric_min') {
-      if (!achievement.actual_value || !goal.target_value) return null;
-      const score = (goal.target_value / achievement.actual_value) * 100;
-      return Math.min(score, 100);
-    } else if (goal.uom_type === 'timeline') {
-      if (!achievement.actual_date || !goal.target_date) return null;
-      const actual = new Date(achievement.actual_date);
-      const target = new Date(goal.target_date);
-      return actual <= target ? 100 : 0;
-    } else if (goal.uom_type === 'zero') {
-      if (achievement.actual_value === null) return null;
-      return achievement.actual_value === 0 ? 100 : 0;
-    }
-    return null;
-  };
+  const computeScore = (goal: Goal, achievement: Achievement): number | null =>
+    calculateScore({
+      uomType: goal.uom_type,
+      targetValue: goal.target_value,
+      actualValue: achievement.actual_value,
+      targetDate: goal.target_date,
+      actualDate: achievement.actual_date,
+    });
 
   const updateAchievement = (goalId: string, field: keyof Achievement, value: any) => {
     const goal = goals.find((g) => g.id === goalId);

@@ -24,7 +24,7 @@ export function calculateScore(input: ScoreInput): number | null {
   switch (uomType) {
     case 'numeric_min':
       // Higher is better: score = (actual / target) * 100, capped at 100%
-      if (actualValue === null || actualValue === undefined || !targetValue) {
+      if (actualValue === null || actualValue === undefined || targetValue === null || targetValue === undefined) {
         return null;
       }
       if (targetValue === 0) return 0;
@@ -33,7 +33,7 @@ export function calculateScore(input: ScoreInput): number | null {
 
     case 'numeric_max':
       // Lower is better: score = (target / actual) * 100, capped at 100%
-      if (actualValue === null || actualValue === undefined || !targetValue) {
+      if (actualValue === null || actualValue === undefined || targetValue === null || targetValue === undefined) {
         return null;
       }
       if (actualValue === 0) return 0;

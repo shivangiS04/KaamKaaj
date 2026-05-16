@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { LogOut, Users, Target, Settings, BarChart3, FileText, Unlock, Download } from 'lucide-react';
+import { LogOut, Users, Target, Settings, BarChart3, FileText, Unlock, Download, Share2 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -190,6 +190,15 @@ export const AdminDashboard: React.FC = () => {
             <FileText className="h-8 w-8 text-red-600 mb-4" />
             <h3 className="text-lg font-medium text-gray-900">Audit Log Viewer</h3>
             <p className="mt-2 text-sm text-gray-500">View system audit logs</p>
+          </button>
+
+          <button
+            onClick={() => navigate('/admin/shared-goals')}
+            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow text-left"
+          >
+            <Share2 className="h-8 w-8 text-indigo-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">Share Approved Goals</h3>
+            <p className="mt-2 text-sm text-gray-500">Push goals to employees with custom weightages</p>
           </button>
         </div>
 

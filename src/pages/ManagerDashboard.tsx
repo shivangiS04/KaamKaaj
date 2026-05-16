@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { LogOut, Users, CheckSquare, FileCheck, MessageSquare } from 'lucide-react';
+import { LogOut, Users, CheckSquare, FileCheck, MessageSquare, Share2 } from 'lucide-react';
 
 export const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -124,7 +124,7 @@ export const ManagerDashboard: React.FC = () => {
         </div>
 
         {/* Manager Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
             onClick={() => navigate('/manager/team-review')}
             className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow text-left"
@@ -144,6 +144,17 @@ export const ManagerDashboard: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Quarterly Check-in</h3>
             <p className="mt-2 text-sm text-gray-500">
               Review team achievements and add check-in comments
+            </p>
+          </button>
+
+          <button
+            onClick={() => navigate('/manager/shared-goals')}
+            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow text-left"
+          >
+            <Share2 className="h-8 w-8 text-purple-600 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900">Share Approved Goals</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Push team goals to multiple employees with custom weightages
             </p>
           </button>
         </div>

@@ -226,6 +226,20 @@ When creating goals as an employee, use these examples:
 5. Export achievement reports as CSV
 6. View audit logs
 
+## Critical Fixes (Hackathon)
+
+Three production issues were fixed for the hackathon submission. Full demo steps: [`docs/hackathon-demo-scripts.md`](docs/hackathon-demo-scripts.md).
+
+| Fix | What changed | How to verify |
+|-----|----------------|---------------|
+| **Score calculation** | `AchievementInput` now uses `scoreCalculator.ts` (numeric_min/max were inverted) | Revenue goal actual 120 / target 100 → **100%** |
+| **Shared goals** | Manager/Admin **Share Approved Goals** UI + DB sync trigger | Push goal to 3 employees; assignees see read-only shared section |
+| **Check-in window** | PostgreSQL `enforce_checkin_window` trigger on `achievements` | Direct Supabase insert outside window returns DB error message |
+
+**Deploy database changes:** run `supabase/hackathon_critical_fixes.sql`, then optional `supabase/hackathon_demo_seed.sql`.
+
+**Run tests:** `npm test` (score, shared-goal RLS, check-in window property tests).
+
 ## Score Calculation
 
 ### Numeric Min (Higher is Better)
