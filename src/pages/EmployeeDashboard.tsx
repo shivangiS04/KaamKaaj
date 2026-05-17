@@ -11,6 +11,7 @@ export const EmployeeDashboard: React.FC = () => {
   const [goalsCount, setGoalsCount] = useState(0);
   const [achievementsCount, setAchievementsCount] = useState(0);
   const [statusLabel, setStatusLabel] = useState('No Goals');
+  const [previewGoals, setPreviewGoals] = useState<{ id: string; title: string; status: string }[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -19,7 +20,7 @@ export const EmployeeDashboard: React.FC = () => {
       try {
         const { data: goals, error: goalsError } = await supabase
           .from('goals')
-          .select('id, status, updated_at')
+          .select('id, title, status, updated_at')
           .eq('employee_id', profile.id)
           .order('updated_at', { ascending: false });
 
@@ -27,10 +28,12 @@ export const EmployeeDashboard: React.FC = () => {
 
         const totalGoals = (goals || []).length;
         setGoalsCount(totalGoals);
+        setPreviewGoals((goals || []).slice(0, 3).map((g) => ({ id: g.id, title: g.title, status: g.status })));
 
         if (totalGoals === 0) {
           setStatusLabel('No Goals');
           setAchievementsCount(0);
+          setPreviewGoals([]);
           return;
         }
 
@@ -42,12 +45,14 @@ export const EmployeeDashboard: React.FC = () => {
         const goalIds = (goals || []).map((g) => g.id);
         const { data: achievements, error: achievementsError } = await supabase
           .from('achievements')
-          .select('id')
+          .select('goal_id')
           .in('goal_id', goalIds)
           .or('actual_value.not.is.null,actual_date.not.is.null');
 
         if (achievementsError) throw achievementsError;
-        setAchievementsCount((achievements || []).length);
+
+        const uniqueGoalIds = new Set((achievements || []).map((a) => a.goal_id));
+        setAchievementsCount(uniqueGoalIds.size);
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : 'Failed to load dashboard stats');
       }
@@ -133,23 +138,42 @@ export const EmployeeDashboard: React.FC = () => {
             </button>
           </div>
           <div className="p-6">
-            <div className="text-center py-12">
-              <Target className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No goals yet</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by creating your first goal for the current cycle.
-              </p>
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => navigate('/employee/goals/create')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Create Goal
-                </button>
+            {previewGoals.length === 0 ? (
+              <div className="text-center py-12">
+                <Target className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No goals yet</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Get started by creating your first goal for the current cycle.
+                </p>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/employee/goals/create')}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Goal
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {previewGoals.map((g) => (
+                  <div key={g.id} className="flex items-center justify-between border border-gray-200 rounded-md px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{g.title}</p>
+                      <p className="text-xs text-gray-500 capitalize">{g.status}</p>
+                    </div>
+                    <button
+                      onClick={() => navigate('/employee/goals')}
+                      className="text-sm font-medium text-indigo-600 hover:text-indigo-900"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
