@@ -118,6 +118,13 @@ export const AchievementInput: React.FC = () => {
       actualDate: achievement.actual_date,
     });
 
+  const parseNumberInput = (raw: string): number | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : null;
+  };
+
   const updateAchievement = (goalId: string, field: keyof Achievement, value: any) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
@@ -270,8 +277,10 @@ export const AchievementInput: React.FC = () => {
                         </label>
                         <input
                           type="date"
-                          value={achievement.actual_date || ''}
-                          onChange={(e) => updateAchievement(goal.id, 'actual_date', e.target.value)}
+                        value={achievement.actual_date !== null && achievement.actual_date !== undefined ? achievement.actual_date : ''}
+                        onChange={(e) =>
+                          updateAchievement(goal.id, 'actual_date', e.target.value ? e.target.value : null)
+                        }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
@@ -283,8 +292,10 @@ export const AchievementInput: React.FC = () => {
                         </label>
                         <input
                           type="number"
-                          value={achievement.actual_value || ''}
-                          onChange={(e) => updateAchievement(goal.id, 'actual_value', parseFloat(e.target.value) || null)}
+                          value={achievement.actual_value !== null && achievement.actual_value !== undefined ? achievement.actual_value : ''}
+                          onChange={(e) =>
+                            updateAchievement(goal.id, 'actual_value', parseNumberInput(e.target.value))
+                          }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
@@ -296,8 +307,10 @@ export const AchievementInput: React.FC = () => {
                         </label>
                         <input
                           type="number"
-                          value={achievement.actual_value || ''}
-                          onChange={(e) => updateAchievement(goal.id, 'actual_value', parseFloat(e.target.value) || null)}
+                          value={achievement.actual_value !== null && achievement.actual_value !== undefined ? achievement.actual_value : ''}
+                          onChange={(e) =>
+                            updateAchievement(goal.id, 'actual_value', parseNumberInput(e.target.value))
+                          }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
