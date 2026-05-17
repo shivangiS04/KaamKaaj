@@ -1,11 +1,60 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { LogOut, Target, CheckSquare, Plus } from 'lucide-react';
+import { toast } from '../utils/toast';
 
 export const EmployeeDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
+  const [goalsCount, setGoalsCount] = useState(0);
+  const [achievementsCount, setAchievementsCount] = useState(0);
+  const [statusLabel, setStatusLabel] = useState('No Goals');
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const fetchStats = async () => {
+      try {
+        const { data: goals, error: goalsError } = await supabase
+          .from('goals')
+          .select('id, status, updated_at')
+          .eq('employee_id', profile.id)
+          .order('updated_at', { ascending: false });
+
+        if (goalsError) throw goalsError;
+
+        const totalGoals = (goals || []).length;
+        setGoalsCount(totalGoals);
+
+        if (totalGoals === 0) {
+          setStatusLabel('No Goals');
+          setAchievementsCount(0);
+          return;
+        }
+
+        const allApproved = (goals || []).every((g) => g.status === 'approved');
+        const mostRecentStatus = goals?.[0]?.status ?? 'draft';
+        const nextStatus = allApproved ? 'approved' : mostRecentStatus;
+        setStatusLabel(`${nextStatus.charAt(0).toUpperCase()}${nextStatus.slice(1)}`);
+
+        const goalIds = (goals || []).map((g) => g.id);
+        const { data: achievements, error: achievementsError } = await supabase
+          .from('achievements')
+          .select('id')
+          .in('goal_id', goalIds)
+          .or('actual_value.not.is.null,actual_date.not.is.null');
+
+        if (achievementsError) throw achievementsError;
+        setAchievementsCount((achievements || []).length);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to load dashboard stats');
+      }
+    };
+
+    fetchStats();
+  }, [profile]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,7 +86,7 @@ export const EmployeeDashboard: React.FC = () => {
               <Target className="h-8 w-8 text-indigo-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">My Goals</p>
-                <p className="text-2xl font-semibold text-gray-900">0</p>
+                <p className="text-2xl font-semibold text-gray-900">{goalsCount}</p>
               </div>
             </div>
           </div>
@@ -47,7 +96,7 @@ export const EmployeeDashboard: React.FC = () => {
               <CheckSquare className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Achievements</p>
-                <p className="text-2xl font-semibold text-gray-900">0</p>
+                <p className="text-2xl font-semibold text-gray-900">{achievementsCount}</p>
               </div>
             </div>
           </div>
@@ -66,7 +115,7 @@ export const EmployeeDashboard: React.FC = () => {
               <Plus className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Status</p>
-                <p className="text-2xl font-semibold text-gray-900">Draft</p>
+                <p className="text-2xl font-semibold text-gray-900">{statusLabel}</p>
               </div>
             </div>
           </div>

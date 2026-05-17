@@ -85,23 +85,37 @@ export const AchievementInput: React.FC = () => {
       if (goalsError) throw goalsError;
       setGoals(goalsData || []);
 
-      // Fetch existing achievements for selected quarter
-      if (goalsData && goalsData.length > 0) {
-        const goalIds = goalsData.map((g) => g.id);
-        const { data: achievementsData, error: achievementsError } = await supabase
-          .from('achievements')
-          .select('*')
-          .in('goal_id', goalIds)
-          .eq('quarter', selectedQuarter);
-
-        if (achievementsError) throw achievementsError;
-
-        const achievementsMap: Record<string, Achievement> = {};
-        achievementsData?.forEach((a) => {
-          achievementsMap[a.goal_id] = a;
-        });
-        setAchievements(achievementsMap);
+      if (!goalsData || goalsData.length === 0) {
+        setAchievements({});
+        return;
       }
+
+      const goalIds = goalsData.map((g) => g.id);
+      const { data: achievementsData, error: achievementsError } = await supabase
+        .from('achievements')
+        .select('*')
+        .in('goal_id', goalIds)
+        .eq('quarter', selectedQuarter);
+
+      if (achievementsError) throw achievementsError;
+
+      const achievementsMap: Record<string, Achievement> = {};
+      goalsData.forEach((goal) => {
+        achievementsMap[goal.id] = {
+          goal_id: goal.id,
+          quarter: selectedQuarter,
+          actual_value: null,
+          actual_date: null,
+          progress_status: 'not_started',
+          score: null,
+        };
+      });
+
+      (achievementsData || []).forEach((a) => {
+        achievementsMap[a.goal_id] = a;
+      });
+
+      setAchievements(achievementsMap);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch goals');
     } finally {
