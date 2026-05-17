@@ -67,8 +67,15 @@ export const CompletionDashboard: React.FC = () => {
 
       if (employeesError) throw employeesError;
 
+      const typedEmployees = (employeesData || []) as {
+        id: string;
+        name: string;
+        email: string;
+        manager_id: string | null;
+      }[];
+
       const managerIds = Array.from(
-        new Set((employeesData || []).map((e: any) => e.manager_id).filter(Boolean))
+        new Set(typedEmployees.map((e) => e.manager_id).filter(Boolean))
       ) as string[];
 
       const { data: managersData, error: managersError } = managerIds.length
@@ -78,13 +85,13 @@ export const CompletionDashboard: React.FC = () => {
       if (managersError) throw managersError;
 
       const managerNameById = new Map<string, string>(
-        (managersData || []).map((m: any) => [m.id, m.name])
+        ((managersData || []) as { id: string; name: string }[]).map((m) => [m.id, m.name])
       );
 
       // For each employee, check their goal and achievement status
       const completionData: EmployeeCompletion[] = [];
 
-      for (const employee of employeesData || []) {
+      for (const employee of typedEmployees) {
         // Check goals status
         const { data: goals, error: goalsError } = await supabase
           .from('goals')
@@ -102,19 +109,18 @@ export const CompletionDashboard: React.FC = () => {
 
         // Check quarterly achievements
         const checkQuarterStatus = async (quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4') => {
+          const approvedGoalIds = (goals || []).filter((g) => g.status === 'approved').map((g) => g.id);
+          const approvedGoalsCount = approvedGoalIds.length;
+          if (approvedGoalsCount === 0) return 'not_started';
+
           const { data: achievements, error: achievementsError } = await supabase
             .from('achievements')
             .select('id')
             .eq('quarter', quarter)
-            .in(
-              'goal_id',
-              (goals || []).filter((g) => g.status === 'approved').map((g) => g.id)
-            );
+            .in('goal_id', approvedGoalIds);
 
           if (achievementsError) throw achievementsError;
 
-          const approvedGoalsCount = (goals || []).filter((g) => g.status === 'approved').length;
-          if (approvedGoalsCount === 0) return 'not_started';
           if (!achievements || achievements.length === 0) return 'not_started';
           if (achievements.length < approvedGoalsCount) return 'in_progress';
           return 'completed';

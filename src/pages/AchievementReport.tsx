@@ -54,58 +54,97 @@ export const AchievementReport: React.FC = () => {
 
   const fetchReportData = async () => {
     try {
-      // Fetch all approved goals with employee and manager info
+      type GoalRow = {
+        id: string;
+        employee_id: string;
+        title: string;
+        thrust_area: string;
+        uom_type: string;
+        target_value: number | null;
+        target_date: string | null;
+        weightage: number;
+      };
+
+      type AchievementRow = {
+        goal_id: string;
+        quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+        actual_value: number | null;
+        actual_date: string | null;
+        progress_status: string | null;
+        score: number | null;
+      };
+
       const { data: goals, error: goalsError } = await supabase
         .from('goals')
-        .select(`
-          id,
-          title,
-          thrust_area,
-          uom_type,
-          target_value,
-          target_date,
-          weightage,
-          employee:profiles!goals_employee_id_fkey (
-            id,
-            name,
-            email,
-            manager:profiles!profiles_manager_id_fkey (name)
-          )
-        `)
+        .select(
+          'id, employee_id, title, thrust_area, uom_type, target_value, target_date, weightage'
+        )
         .eq('status', 'approved');
 
       if (goalsError) throw goalsError;
 
-      // Fetch all achievements
-      const { data: achievements, error: achievementsError } = await supabase
-        .from('achievements')
-        .select('*');
+      const typedGoals = (goals || []) as GoalRow[];
+      const goalIds = typedGoals.map((g) => g.id);
+      const employeeIds = Array.from(new Set(typedGoals.map((g) => g.employee_id)));
+
+      const { data: achievements, error: achievementsError } = goalIds.length
+        ? await supabase
+            .from('achievements')
+            .select('goal_id, quarter, actual_value, actual_date, progress_status, score')
+            .in('goal_id', goalIds)
+        : { data: [], error: null };
 
       if (achievementsError) throw achievementsError;
 
+      const { data: employeeProfiles, error: employeesError } = employeeIds.length
+        ? await supabase.from('profiles').select('id, name, email, manager_id').in('id', employeeIds)
+        : { data: [], error: null };
+
+      if (employeesError) throw employeesError;
+
+      const managerIds = Array.from(
+        new Set((employeeProfiles || []).map((p) => p.manager_id).filter(Boolean))
+      ) as string[];
+
+      const { data: managersData, error: managersError } = managerIds.length
+        ? await supabase.from('profiles').select('id, name').in('id', managerIds)
+        : { data: [], error: null };
+
+      if (managersError) throw managersError;
+
+      const employeeById = new Map<string, { id: string; name: string; email: string; manager_id: string | null }>(
+        (employeeProfiles || []).map((p) => [p.id, p])
+      );
+      const managerNameById = new Map<string, string>((managersData || []).map((m) => [m.id, m.name]));
+
+      const achievementByGoalQuarter = new Map<string, AchievementRow>();
+      for (const a of (achievements || []) as AchievementRow[]) {
+        achievementByGoalQuarter.set(`${a.goal_id}:${a.quarter}`, a);
+      }
+
       // Build report data
       const reportRows: AchievementReportRow[] = [];
-      const uniqueEmployees = new Set<string>();
+      const uniqueEmployees = new Map<string, { id: string; name: string }>();
       const uniqueThrustAreas = new Set<string>();
 
-      for (const goal of goals || []) {
-        const q1 = achievements?.find((a) => a.goal_id === goal.id && a.quarter === 'Q1');
-        const q2 = achievements?.find((a) => a.goal_id === goal.id && a.quarter === 'Q2');
-        const q3 = achievements?.find((a) => a.goal_id === goal.id && a.quarter === 'Q3');
-        const q4 = achievements?.find((a) => a.goal_id === goal.id && a.quarter === 'Q4');
+      for (const goal of typedGoals) {
+        const q1 = achievementByGoalQuarter.get(`${goal.id}:Q1`);
+        const q2 = achievementByGoalQuarter.get(`${goal.id}:Q2`);
+        const q3 = achievementByGoalQuarter.get(`${goal.id}:Q3`);
+        const q4 = achievementByGoalQuarter.get(`${goal.id}:Q4`);
 
-        const getActualValue = (achievement: any) => {
+        const getActualValue = (achievement?: AchievementRow) => {
           if (!achievement) return null;
           return achievement.actual_date || achievement.actual_value;
         };
 
-        const employee = Array.isArray(goal.employee) ? goal.employee[0] : goal.employee;
-        const manager = employee?.manager ? (Array.isArray(employee.manager) ? employee.manager[0] : employee.manager) : null;
+        const employee = employeeById.get(goal.employee_id);
+        const managerName = employee?.manager_id ? managerNameById.get(employee.manager_id) ?? null : null;
 
         reportRows.push({
           employee_name: employee?.name || '',
           employee_email: employee?.email || '',
-          manager_name: manager?.name || null,
+          manager_name: managerName,
           goal_title: goal.title,
           thrust_area: goal.thrust_area,
           uom_type: goal.uom_type,
@@ -126,14 +165,14 @@ export const AchievementReport: React.FC = () => {
           q4_score: q4?.score || null,
         });
 
-        uniqueEmployees.add(JSON.stringify({ id: employee?.id, name: employee?.name }));
+        if (employee) uniqueEmployees.set(employee.id, { id: employee.id, name: employee.name });
         uniqueThrustAreas.add(goal.thrust_area);
       }
 
       setReportData(reportRows);
       setFilteredData(reportRows);
       setEmployees(
-        Array.from(uniqueEmployees).map((e) => JSON.parse(e)).sort((a, b) => a.name.localeCompare(b.name))
+        Array.from(uniqueEmployees.values()).sort((a, b) => a.name.localeCompare(b.name))
       );
       setThrustAreas(Array.from(uniqueThrustAreas).sort());
     } catch (err: any) {
