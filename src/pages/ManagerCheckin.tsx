@@ -120,7 +120,8 @@ export const ManagerCheckin: React.FC = () => {
           )
         `)
         .eq('quarter', selectedQuarter)
-        .in('goal_id', goalIds);
+        .in('goal_id', goalIds)
+        .order('updated_at', { ascending: false });
 
       if (achievementsError) throw achievementsError;
 
@@ -130,9 +131,16 @@ export const ManagerCheckin: React.FC = () => {
         goal: Array.isArray(achievement.goal) ? achievement.goal[0] : achievement.goal
       }));
 
+      const seen = new Set<string>();
+      const uniqueAchievements = formattedAchievements.filter((a: any) => {
+        if (seen.has(a.goal_id)) return false;
+        seen.add(a.goal_id);
+        return true;
+      });
+
       // Fetch comments for these achievements
-      if (formattedAchievements.length > 0) {
-        const achievementIds = formattedAchievements.map((a) => a.id);
+      if (uniqueAchievements.length > 0) {
+        const achievementIds = uniqueAchievements.map((a: any) => a.id);
         const { data: commentsData, error: commentsError } = await supabase
           .from('checkin_comments')
           .select(`
@@ -160,7 +168,7 @@ export const ManagerCheckin: React.FC = () => {
         setComments(commentsMap);
       }
 
-      setAchievements(formattedAchievements);
+      setAchievements(uniqueAchievements);
     } catch (err: any) {
       toast.error(err.message || 'Failed to fetch achievements');
     }
@@ -323,7 +331,11 @@ export const ManagerCheckin: React.FC = () => {
                       <div>
                         <p className="text-xs font-medium text-gray-500">Actual</p>
                         <p className="text-sm text-gray-900">
-                          {achievement.actual_date || achievement.actual_value || '-'}
+                          {achievement.actual_date
+                            ? achievement.actual_date
+                            : achievement.actual_value !== null && achievement.actual_value !== undefined
+                            ? achievement.actual_value
+                            : '-'}
                         </p>
                       </div>
                       <div>
