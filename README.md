@@ -6,6 +6,8 @@ A production-ready web application for corporate goal setting and quarterly perf
 
 This portal enables employees to set quarterly goals, managers to review and approve those goals, and administrators to manage the entire goal-setting cycle. The system supports three distinct user roles with role-specific dashboards and workflows.
 
+KaamKaaj runs at ₹0/month on Vercel free tier and Supabase free tier, supporting up to 50,000 monthly active users before any paid plan is needed. All data is secured with Supabase Row Level Security ensuring employees can only access their own goals. The entire stack can be deployed in under 10 minutes.
+
 ## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS
