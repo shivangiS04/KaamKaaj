@@ -62,15 +62,24 @@ export const CompletionDashboard: React.FC = () => {
       // Fetch all employees
       const { data: employeesData, error: employeesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          name,
-          email,
-          manager:profiles!profiles_manager_id_fkey (name)
-        `)
+        .select('id, name, email, manager_id')
         .eq('role', 'employee');
 
       if (employeesError) throw employeesError;
+
+      const managerIds = Array.from(
+        new Set((employeesData || []).map((e: any) => e.manager_id).filter(Boolean))
+      ) as string[];
+
+      const { data: managersData, error: managersError } = managerIds.length
+        ? await supabase.from('profiles').select('id, name').in('id', managerIds)
+        : { data: [], error: null };
+
+      if (managersError) throw managersError;
+
+      const managerNameById = new Map<string, string>(
+        (managersData || []).map((m: any) => [m.id, m.name])
+      );
 
       // For each employee, check their goal and achievement status
       const completionData: EmployeeCompletion[] = [];
@@ -116,15 +125,9 @@ export const CompletionDashboard: React.FC = () => {
         const q3Status = await checkQuarterStatus('Q3');
         const q4Status = await checkQuarterStatus('Q4');
 
-        // Fix: Handle manager data which could be an array, object, or null
-        let managerName: string | null = null;
-        if (employee.manager) {
-          if (Array.isArray(employee.manager)) {
-            managerName = employee.manager[0]?.name || null;
-          } else if (typeof employee.manager === 'object' && 'name' in employee.manager) {
-            managerName = (employee.manager as any).name || null;
-          }
-        }
+        const managerName = employee.manager_id
+          ? managerNameById.get(employee.manager_id) ?? null
+          : null;
 
         completionData.push({
           id: employee.id,

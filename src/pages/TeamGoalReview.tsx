@@ -48,6 +48,32 @@ export const TeamGoalReview: React.FC = () => {
     fetchTeamGoals();
   }, []);
 
+  const findGoalStatus = (goalId: string): Goal['status'] | null => {
+    for (const eg of employeeGoals) {
+      const goal = eg.goals.find((g) => g.id === goalId);
+      if (goal) return goal.status;
+    }
+    return null;
+  };
+
+  const insertGoalStatusAudit = async (
+    goalId: string,
+    previousStatus: Goal['status'] | null,
+    newStatus: Goal['status']
+  ) => {
+    const { error } = await supabase.from('audit_logs').insert({
+      table_name: 'goals',
+      record_id: goalId,
+      action: 'UPDATE',
+      changed_by: user!.id,
+      old_data: { status: previousStatus },
+      new_data: { status: newStatus },
+      changed_at: new Date().toISOString(),
+    });
+
+    if (error) throw error;
+  };
+
   const fetchTeamGoals = async () => {
     try {
       // Fetch team members
@@ -128,6 +154,7 @@ export const TeamGoalReview: React.FC = () => {
   const handleApproveGoal = async (goalId: string) => {
     setProcessing(true);
     try {
+      const previousStatus = findGoalStatus(goalId);
       const { error } = await supabase
         .from('goals')
         .update({
@@ -137,6 +164,12 @@ export const TeamGoalReview: React.FC = () => {
         .eq('id', goalId);
 
       if (error) throw error;
+
+      try {
+        await insertGoalStatusAudit(goalId, previousStatus, 'approved');
+      } catch (auditErr: any) {
+        toast.error(auditErr.message || 'Failed to write audit log');
+      }
 
       toast.success('Goal approved successfully');
       fetchTeamGoals();
@@ -169,6 +202,24 @@ export const TeamGoalReview: React.FC = () => {
 
       if (error) throw error;
 
+      try {
+        const changedAt = new Date().toISOString();
+        const auditRows = goalIds.map((id) => ({
+          table_name: 'goals',
+          record_id: id,
+          action: 'UPDATE',
+          changed_by: user!.id,
+          old_data: { status: 'submitted' as const },
+          new_data: { status: 'approved' as const },
+          changed_at: changedAt,
+        }));
+
+        const { error: auditError } = await supabase.from('audit_logs').insert(auditRows);
+        if (auditError) throw auditError;
+      } catch (auditErr: any) {
+        toast.error(auditErr.message || 'Failed to write audit log');
+      }
+
       toast.success(`All goals approved for ${employeeData.employee.name}`);
       fetchTeamGoals();
     } catch (err: any) {
@@ -186,6 +237,7 @@ export const TeamGoalReview: React.FC = () => {
 
     setProcessing(true);
     try {
+      const previousStatus = findGoalStatus(goalToReturn);
       const { error } = await supabase
         .from('goals')
         .update({
@@ -195,6 +247,12 @@ export const TeamGoalReview: React.FC = () => {
         .eq('id', goalToReturn);
 
       if (error) throw error;
+
+      try {
+        await insertGoalStatusAudit(goalToReturn, previousStatus, 'returned');
+      } catch (auditErr: any) {
+        toast.error(auditErr.message || 'Failed to write audit log');
+      }
 
       toast.success('Goal returned to employee');
       setShowReturnModal(false);

@@ -98,6 +98,7 @@ export const GoalUnlock: React.FC = () => {
 
     setProcessing(true);
     try {
+      const goal = goals.find((g) => g.id === goalId);
       // Unlock the goal
       const { error: unlockError } = await supabase
         .from('goals')
@@ -110,13 +111,14 @@ export const GoalUnlock: React.FC = () => {
       const { error: logError } = await supabase.from('audit_logs').insert({
         table_name: 'goals',
         record_id: goalId,
-        action: 'UNLOCK',
+        action: 'UPDATE',
         changed_by: user!.id,
-        old_data: { is_locked: true },
-        new_data: { is_locked: false },
+        old_data: { status: goal?.status ?? null, is_locked: true },
+        new_data: { status: goal?.status ?? null, is_locked: false },
+        changed_at: new Date().toISOString(),
       });
 
-      if (logError) console.error('Failed to log unlock action:', logError);
+      if (logError) toast.error(logError.message || 'Failed to write audit log');
 
       toast.success('Goal unlocked successfully');
       fetchLockedGoals();
