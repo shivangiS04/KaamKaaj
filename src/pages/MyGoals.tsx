@@ -72,8 +72,7 @@ export const MyGoals: React.FC = () => {
   }, [fetchGoals]);
 
   const canEdit = (goal: Goal) => {
-    if (goal.is_locked) return false;
-    return goal.status === 'draft' || goal.status === 'returned';
+    return goal.is_locked === false || goal.status === 'returned';
   };
 
   const startInlineEdit = (goal: Goal) => {
@@ -95,12 +94,7 @@ export const MyGoals: React.FC = () => {
   };
 
   const handleEditClick = (goal: Goal) => {
-    if (goal.status === 'returned') {
-      startInlineEdit(goal);
-      return;
-    }
-
-    navigate(`/employee/goals/edit/${goal.id}`);
+    startInlineEdit(goal);
   };
 
   const validateInlineEdit = (goal: Goal, form: NonNullable<typeof editForm>): string | null => {

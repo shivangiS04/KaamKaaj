@@ -100,12 +100,15 @@ export const GoalUnlock: React.FC = () => {
     try {
       const goal = goals.find((g) => g.id === goalId);
       // Unlock the goal
-      const { error: unlockError } = await supabase
+      const { data: unlockData, error: unlockError } = await supabase
         .from('goals')
         .update({ is_locked: false })
-        .eq('id', goalId);
+        .eq('id', goalId)
+        .select('id, is_locked')
+        .single();
 
       if (unlockError) throw unlockError;
+      console.log('Unlock goal update response:', unlockData);
 
       // Log the unlock action
       const { error: logError } = await supabase.from('audit_logs').insert({
