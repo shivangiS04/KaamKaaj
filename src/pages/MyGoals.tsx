@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -36,12 +36,18 @@ export const MyGoals: React.FC = () => {
   const [sharedGoals, setSharedGoals] = useState<SharedGoalView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    title: string;
+    description: string;
+    targetValue: string;
+    weightage: string;
+  } | null>(null);
+  const [resubmittingGoalId, setResubmittingGoalId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchGoals();
-  }, []);
+  const fetchGoals = useCallback(async () => {
+    if (!user) return;
 
-  const fetchGoals = async () => {
     try {
       const { data, error } = await supabase
         .from('goals')
@@ -54,20 +60,129 @@ export const MyGoals: React.FC = () => {
 
       const shared = await fetchSharedGoalsForEmployee(user!.id);
       setSharedGoals(shared);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch goals');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch goals');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
 
   const canEdit = (goal: Goal) => {
     if (goal.is_locked) return false;
     return goal.status === 'draft' || goal.status === 'returned';
   };
 
-  const handleEdit = (goalId: string) => {
-    navigate(`/employee/goals/edit/${goalId}`);
+  const startInlineEdit = (goal: Goal) => {
+    setError('');
+
+    if (editingGoalId === goal.id) {
+      setEditingGoalId(null);
+      setEditForm(null);
+      return;
+    }
+
+    setEditingGoalId(goal.id);
+    setEditForm({
+      title: goal.title,
+      description: goal.description ?? '',
+      targetValue: goal.target_value === null ? '' : String(goal.target_value),
+      weightage: String(goal.weightage),
+    });
+  };
+
+  const handleEditClick = (goal: Goal) => {
+    if (goal.status === 'returned') {
+      startInlineEdit(goal);
+      return;
+    }
+
+    navigate(`/employee/goals/edit/${goal.id}`);
+  };
+
+  const validateInlineEdit = (goal: Goal, form: NonNullable<typeof editForm>): string | null => {
+    if (!form.title.trim()) return 'Title is required';
+
+    const weightage = Number(form.weightage);
+    if (!Number.isFinite(weightage)) return 'Weightage must be a number';
+    if (weightage < 10) return 'Minimum weightage is 10%';
+    if (weightage > 100) return 'Maximum weightage is 100%';
+
+    const otherTotalWeightage = goals
+      .filter((g) => g.id !== goal.id)
+      .reduce((sum, g) => sum + g.weightage, 0);
+    const nextTotalWeightage = otherTotalWeightage + weightage;
+    if (nextTotalWeightage !== 100) {
+      return `Total weightage must equal 100%. Current total: ${nextTotalWeightage}%`;
+    }
+
+    if (goal.uom_type !== 'timeline' && goal.uom_type !== 'zero') {
+      const targetValueRaw = form.targetValue.trim();
+      const targetValue = Number(targetValueRaw);
+      if (!targetValueRaw || !Number.isFinite(targetValue)) return 'Target value is required';
+    }
+
+    return null;
+  };
+
+  const resubmitGoal = async (goal: Goal) => {
+    if (!editForm) return;
+
+    const validationError = validateInlineEdit(goal, editForm);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setResubmittingGoalId(goal.id);
+    setError('');
+
+    const description = editForm.description.trim() ? editForm.description.trim() : null;
+    const targetValue = editForm.targetValue.trim() ? Number(editForm.targetValue) : null;
+    const weightage = Number(editForm.weightage);
+
+    try {
+      const { error } = await supabase
+        .from('goals')
+        .update({
+          title: editForm.title.trim(),
+          description,
+          target_value: targetValue,
+          weightage,
+          status: 'submitted',
+          manager_comment: null,
+        })
+        .eq('id', goal.id)
+        .eq('employee_id', user!.id);
+
+      if (error) throw error;
+
+      setGoals((prev) =>
+        prev.map((g) =>
+          g.id === goal.id
+            ? {
+                ...g,
+                title: editForm.title.trim(),
+                description,
+                target_value: targetValue,
+                weightage,
+                status: 'submitted',
+                manager_comment: null,
+              }
+            : g
+        )
+      );
+
+      setEditingGoalId(null);
+      setEditForm(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resubmit goal');
+    } finally {
+      setResubmittingGoalId(null);
+    }
   };
 
   if (loading) {
@@ -204,7 +319,7 @@ export const MyGoals: React.FC = () => {
                     </div>
                     {canEdit(goal) && (
                       <button
-                        onClick={() => handleEdit(goal.id)}
+                        onClick={() => handleEditClick(goal)}
                         className="ml-4 p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded"
                       >
                         <Edit className="h-5 w-5" />
@@ -236,6 +351,71 @@ export const MyGoals: React.FC = () => {
                       <p className="text-sm text-gray-900">{goal.weightage}%</p>
                     </div>
                   </div>
+
+                  {editingGoalId === goal.id && editForm && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                          <input
+                            type="text"
+                            value={editForm.title}
+                            onChange={(e) =>
+                              setEditForm((prev) => (prev ? { ...prev, title: e.target.value } : prev))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea
+                            value={editForm.description}
+                            onChange={(e) =>
+                              setEditForm((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Target Value</label>
+                          <input
+                            type="number"
+                            step="any"
+                            value={editForm.targetValue}
+                            onChange={(e) =>
+                              setEditForm((prev) => (prev ? { ...prev, targetValue: e.target.value } : prev))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Weightage (%)</label>
+                          <input
+                            type="number"
+                            value={editForm.weightage}
+                            onChange={(e) =>
+                              setEditForm((prev) => (prev ? { ...prev, weightage: e.target.value } : prev))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          onClick={() => resubmitGoal(goal)}
+                          disabled={resubmittingGoalId === goal.id}
+                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {resubmittingGoalId === goal.id ? 'Resubmitting...' : 'Resubmit'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {goal.manager_comment && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
