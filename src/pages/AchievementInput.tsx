@@ -52,6 +52,7 @@ export const AchievementInput: React.FC = () => {
     open: true,
     message: '',
   });
+  const [selectedQuarterOpen, setSelectedQuarterOpen] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchGoalsAndAchievements();
@@ -64,7 +65,9 @@ export const AchievementInput: React.FC = () => {
         .from('goal_cycles')
         .select('*')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
+
+      setSelectedQuarterOpen(Boolean(cycle?.checkin_windows?.[selectedQuarter]));
 
       const validation = validateCheckinWindow(cycle);
       if (!validation.allowed) {
@@ -270,6 +273,12 @@ export const AchievementInput: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {selectedQuarterOpen === false && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            This check-in window is currently closed. Contact your Admin to open it.
+          </div>
+        )}
         {!checkInWindow.open && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded flex items-center">
             <AlertCircle className="h-5 w-5 mr-2" />
@@ -303,7 +312,7 @@ export const AchievementInput: React.FC = () => {
           </div>
         </div>
 
-        {goals.length === 0 ? (
+        {selectedQuarterOpen !== true ? null : goals.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-12">
               <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />

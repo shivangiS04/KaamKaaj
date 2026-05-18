@@ -12,6 +12,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -21,6 +23,7 @@ import {
 } from 'recharts';
 
 const AREA_COLORS = ['#4f46e5', '#16a34a', '#f59e0b', '#ef4444', '#7c3aed', '#0f766e'];
+const TREND_LINE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'];
 
 type PlannedVsActualDatum = { goal: string; planned: number; actual: number };
 type PlannedVsActualTooltipItem = {
@@ -39,6 +42,8 @@ export const EmployeeDashboard: React.FC = () => {
   const [previewGoals, setPreviewGoals] = useState<{ id: string; title: string; status: string }[]>([]);
   const [plannedVsActual, setPlannedVsActual] = useState<PlannedVsActualDatum[]>([]);
   const [goalsByThrustArea, setGoalsByThrustArea] = useState<{ name: string; value: number }[]>([]);
+  const [trendData, setTrendData] = useState<Array<Record<string, number | string>>>([]);
+  const [trendGoals, setTrendGoals] = useState<Array<{ id: string; title: string; color: string }>>([]);
 
   const toNumber = (value: unknown): number => {
     if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -84,6 +89,8 @@ export const EmployeeDashboard: React.FC = () => {
           setPreviewGoals([]);
           setPlannedVsActual([]);
           setGoalsByThrustArea([]);
+          setTrendData([]);
+          setTrendGoals([]);
           return;
         }
 
@@ -117,33 +124,69 @@ export const EmployeeDashboard: React.FC = () => {
         const numericGoalIds = numericGoals.map((g) => g.id);
         if (numericGoalIds.length === 0) {
           setPlannedVsActual([]);
-          return;
+        } else {
+          const { data: q1Achievements, error: q1Error } = await supabase
+            .from('achievements')
+            .select('goal_id, actual_value, updated_at')
+            .eq('quarter', 'Q1')
+            .in('goal_id', numericGoalIds)
+            .order('updated_at', { ascending: false });
+
+          if (q1Error) throw q1Error;
+
+          const actualByGoalId = new Map<string, number>();
+          (q1Achievements || []).forEach((a) => {
+            if (actualByGoalId.has(a.goal_id)) return;
+            actualByGoalId.set(a.goal_id, toNumber(a.actual_value));
+          });
+
+          setPlannedVsActual(
+            numericGoals
+              .map((g) => ({
+                goal: g.title,
+                planned: g.uom_type === 'zero' ? 0 : toNumber(g.target_value),
+                actual: actualByGoalId.get(g.id) ?? 0,
+              }))
+              .sort((a, b) => b.planned - a.planned)
+          );
         }
 
-        const { data: q1Achievements, error: q1Error } = await supabase
-          .from('achievements')
-          .select('goal_id, actual_value, updated_at')
-          .eq('quarter', 'Q1')
-          .in('goal_id', numericGoalIds)
-          .order('updated_at', { ascending: false });
+        const approvedGoalIds = approvedGoals.map((g) => g.id);
+        if (approvedGoalIds.length === 0) {
+          setTrendData([]);
+          setTrendGoals([]);
+        } else {
+          const { data: trendAchievements, error: trendError } = await supabase
+            .from('achievements')
+            .select('goal_id, quarter, score')
+            .in('goal_id', approvedGoalIds);
 
-        if (q1Error) throw q1Error;
+          if (trendError) throw trendError;
 
-        const actualByGoalId = new Map<string, number>();
-        (q1Achievements || []).forEach((a) => {
-          if (actualByGoalId.has(a.goal_id)) return;
-          actualByGoalId.set(a.goal_id, toNumber(a.actual_value));
-        });
+          const quarters: Array<'Q1' | 'Q2' | 'Q3' | 'Q4'> = ['Q1', 'Q2', 'Q3', 'Q4'];
+          const base = quarters.map((q) => {
+            const row: Record<string, number | string> = { quarter: q };
+            approvedGoalIds.forEach((goalId) => {
+              row[goalId] = 0;
+            });
+            return row;
+          });
 
-        setPlannedVsActual(
-          numericGoals
-            .map((g) => ({
-              goal: g.title,
-              planned: g.uom_type === 'zero' ? 0 : toNumber(g.target_value),
-              actual: actualByGoalId.get(g.id) ?? 0,
+          (trendAchievements || []).forEach((a) => {
+            const idx = quarters.indexOf(a.quarter);
+            if (idx === -1) return;
+            base[idx][a.goal_id] = Math.max(0, Math.min(100, toNumber(a.score)));
+          });
+
+          setTrendData(base);
+          setTrendGoals(
+            approvedGoals.map((g, i) => ({
+              id: g.id,
+              title: g.title,
+              color: TREND_LINE_COLORS[i % TREND_LINE_COLORS.length],
             }))
-            .sort((a, b) => b.planned - a.planned)
-        );
+          );
+        }
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : 'Failed to load dashboard stats');
       }
@@ -181,6 +224,30 @@ export const EmployeeDashboard: React.FC = () => {
               <span className="font-medium text-gray-900">{p.value ?? 0}</span>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  const trendGoalTitleById = new Map(trendGoals.map((g) => [g.id, g.title]));
+
+  const trendTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+        <div className="text-xs font-medium text-gray-900 mb-1">{label}</div>
+        <div className="space-y-1">
+          {payload
+            .filter((p: any) => p.dataKey)
+            .map((p: any) => (
+              <div key={String(p.dataKey)} className="flex items-center justify-between gap-6 text-xs">
+                <span className="flex items-center gap-2 text-gray-700">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                  {trendGoalTitleById.get(String(p.dataKey)) ?? String(p.dataKey)}
+                </span>
+                <span className="font-medium text-gray-900">{toNumber(p.value).toFixed(1)}%</span>
+              </div>
+            ))}
         </div>
       </div>
     );
@@ -328,6 +395,40 @@ export const EmployeeDashboard: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Achievement Trend (Q1–Q4)</h2>
+          {trendGoals.length === 0 ? (
+            <div className="text-sm text-gray-500">No approved goals found.</div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 8, right: 24, left: 0, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="quarter" tick={{ fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                  <Tooltip content={trendTooltip} />
+                  <Legend
+                    verticalAlign="bottom"
+                    wrapperStyle={{ fontSize: '12px' }}
+                    formatter={(value) => trendGoalTitleById.get(String(value)) ?? String(value)}
+                  />
+                  {trendGoals.map((g) => (
+                    <Line
+                      key={g.id}
+                      type="monotone"
+                      dataKey={g.id}
+                      stroke={g.color}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Goals Section */}

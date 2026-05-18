@@ -14,6 +14,7 @@ interface GoalCycle {
   window_open_date: string;
   window_close_date: string;
   is_active: boolean;
+  checkin_windows?: { Q1: boolean; Q2: boolean; Q3: boolean; Q4: boolean } | null;
   created_at: string;
 }
 
@@ -31,6 +32,8 @@ export const CycleManagement: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+
+  const defaultCheckinWindows = { Q1: false, Q2: false, Q3: false, Q4: false };
 
   useEffect(() => {
     fetchCycles();
@@ -161,6 +164,29 @@ export const CycleManagement: React.FC = () => {
     }
   };
 
+  const updateCheckinWindow = async (cycleId: string, quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4', nextValue: boolean) => {
+    setProcessing(true);
+    try {
+      const current = cycles.find((c) => c.id === cycleId);
+      const currentWindows = current?.checkin_windows ?? defaultCheckinWindows;
+      const updated = { ...defaultCheckinWindows, ...currentWindows, [quarter]: nextValue };
+
+      const { error } = await supabase
+        .from('goal_cycles')
+        .update({ checkin_windows: updated })
+        .eq('id', cycleId);
+
+      if (error) throw error;
+
+      setCycles(cycles.map((c) => (c.id === cycleId ? { ...c, checkin_windows: updated } : c)));
+      toast.success(`${quarter} check-in window ${nextValue ? 'opened' : 'closed'}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update check-in window');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -204,6 +230,66 @@ export const CycleManagement: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {(() => {
+          const activeCycle = cycles.find((c) => c.is_active);
+          if (!activeCycle) return null;
+          const windows = activeCycle.checkin_windows ?? defaultCheckinWindows;
+
+          const ToggleRow = ({
+            quarter,
+          }: {
+            quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+          }) => {
+            const isOpen = Boolean(windows[quarter]);
+            return (
+              <div className="flex items-center justify-between gap-4 border border-gray-200 rounded-md px-4 py-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900">{quarter} Check-in Window — {isOpen ? 'Open' : 'Closed'}</div>
+                </div>
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={() => updateCheckinWindow(activeCycle.id, quarter, !isOpen)}
+                  className={`w-14 h-7 rounded-full p-1 transition-colors disabled:opacity-50 ${
+                    isOpen ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span className={`block h-5 w-5 rounded-full bg-white transition-transform ${isOpen ? 'translate-x-7' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            );
+          };
+
+          return (
+            <div className="bg-white rounded-lg shadow p-6 mb-8">
+              <div className="flex items-start justify-between gap-6">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-medium text-gray-900">Active Cycle</h2>
+                  <div className="mt-1 text-sm text-gray-600">
+                    {activeCycle.year} • {activeCycle.phase_name}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {new Date(activeCycle.window_open_date).toLocaleDateString()} — {new Date(activeCycle.window_close_date).toLocaleDateString()}
+                  </div>
+                </div>
+                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  Active
+                </span>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Check-in Windows</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <ToggleRow quarter="Q1" />
+                  <ToggleRow quarter="Q2" />
+                  <ToggleRow quarter="Q3" />
+                  <ToggleRow quarter="Q4" />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {cycles.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-12">
