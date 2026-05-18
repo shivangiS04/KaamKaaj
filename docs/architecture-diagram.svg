@@ -1,0 +1,149 @@
+<svg width="1400" height="950" viewBox="0 0 1400 950" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: 700 34px Arial, sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px Arial, sans-serif; fill: #4b5563; }
+      .layer-title { font: 700 20px Arial, sans-serif; fill: #111827; }
+      .box-title { font: 700 16px Arial, sans-serif; fill: #111827; }
+      .box-text { font: 14px Arial, sans-serif; fill: #374151; }
+      .small { font: 12px Arial, sans-serif; fill: #6b7280; }
+      .arrow { stroke: #4f46e5; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+      .arrow-gray { stroke: #6b7280; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead-gray); }
+      .card { fill: #ffffff; stroke: #d1d5db; stroke-width: 2; rx: 16; }
+      .client { fill: #eef2ff; stroke: #6366f1; }
+      .vercel { fill: #f3f4f6; stroke: #111827; }
+      .supabase { fill: #ecfdf5; stroke: #10b981; }
+      .resend { fill: #fef3c7; stroke: #f59e0b; }
+      .roles { fill: #fdf2f8; stroke: #ec4899; }
+      .dbtable { fill: #ffffff; stroke: #34d399; stroke-width: 1.5; rx: 10; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4f46e5" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" />
+    </marker>
+  </defs>
+
+  <rect width="1400" height="950" fill="#f9fafb" />
+
+  <text x="700" y="48" text-anchor="middle" class="title">KaamKaaj System Architecture</text>
+  <text x="700" y="78" text-anchor="middle" class="subtitle">React + Vercel + Supabase + Resend — Production-ready at ₹0/month</text>
+
+  <!-- Roles -->
+  <rect x="40" y="130" width="260" height="660" class="card roles" />
+  <text x="70" y="168" class="layer-title">User Roles</text>
+
+  <rect x="70" y="200" width="200" height="130" class="card" />
+  <text x="170" y="230" text-anchor="middle" class="box-title">Employee</text>
+  <text x="92" y="260" class="box-text">• Create goals</text>
+  <text x="92" y="285" class="box-text">• Log achievements</text>
+  <text x="92" y="310" class="box-text">• View analytics</text>
+
+  <rect x="70" y="370" width="200" height="150" class="card" />
+  <text x="170" y="400" text-anchor="middle" class="box-title">Manager</text>
+  <text x="92" y="430" class="box-text">• Approve/return goals</text>
+  <text x="92" y="455" class="box-text">• Check-in comments</text>
+  <text x="92" y="480" class="box-text">• Team dashboard</text>
+
+  <rect x="70" y="560" width="200" height="160" class="card" />
+  <text x="170" y="590" text-anchor="middle" class="box-title">Admin / HR</text>
+  <text x="92" y="620" class="box-text">• Cycle management</text>
+  <text x="92" y="645" class="box-text">• User management</text>
+  <text x="92" y="670" class="box-text">• Audit logs</text>
+  <text x="92" y="695" class="box-text">• Reports</text>
+
+  <!-- Client -->
+  <rect x="380" y="120" width="300" height="670" class="card client" />
+  <text x="415" y="160" class="layer-title">Client Layer</text>
+  <text x="415" y="184" class="small">Browser SPA</text>
+
+  <rect x="420" y="220" width="220" height="70" class="card" />
+  <text x="530" y="250" text-anchor="middle" class="box-title">React 18 + TypeScript</text>
+  <text x="530" y="274" text-anchor="middle" class="box-text">Vite Application</text>
+
+  <rect x="420" y="330" width="220" height="65" class="card" />
+  <text x="530" y="358" text-anchor="middle" class="box-title">React Router v6</text>
+  <text x="530" y="382" text-anchor="middle" class="box-text">Role-based routing</text>
+
+  <rect x="420" y="435" width="220" height="65" class="card" />
+  <text x="530" y="463" text-anchor="middle" class="box-title">Tailwind + Lucide</text>
+  <text x="530" y="487" text-anchor="middle" class="box-text">Responsive UI + icons</text>
+
+  <rect x="420" y="540" width="220" height="65" class="card" />
+  <text x="530" y="568" text-anchor="middle" class="box-title">Recharts</text>
+  <text x="530" y="592" text-anchor="middle" class="box-text">Analytics dashboards</text>
+
+  <rect x="420" y="645" width="220" height="75" class="card" />
+  <text x="530" y="674" text-anchor="middle" class="box-title">Auth Context</text>
+  <text x="530" y="698" text-anchor="middle" class="box-text">Session + profile state</text>
+
+  <!-- Vercel -->
+  <rect x="750" y="120" width="270" height="670" class="card vercel" />
+  <text x="785" y="160" class="layer-title">Vercel</text>
+  <text x="785" y="184" class="small">Free Tier — ₹0/month</text>
+
+  <rect x="780" y="220" width="210" height="75" class="card" />
+  <text x="885" y="250" text-anchor="middle" class="box-title">Global CDN</text>
+  <text x="885" y="274" text-anchor="middle" class="box-text">Edge delivery</text>
+
+  <rect x="780" y="340" width="210" height="80" class="card" />
+  <text x="885" y="370" text-anchor="middle" class="box-title">SPA Hosting</text>
+  <text x="885" y="394" text-anchor="middle" class="box-text">vercel.json rewrites</text>
+
+  <rect x="780" y="505" width="210" height="100" class="card" />
+  <text x="885" y="535" text-anchor="middle" class="box-title">Serverless API</text>
+  <text x="885" y="560" text-anchor="middle" class="box-text">/api/send-email</text>
+  <text x="885" y="584" text-anchor="middle" class="box-text">Keeps API key secure</text>
+
+  <!-- Supabase -->
+  <rect x="1080" y="120" width="280" height="670" class="card supabase" />
+  <text x="1115" y="160" class="layer-title">Supabase</text>
+  <text x="1115" y="184" class="small">Free Tier — ₹0/month</text>
+
+  <rect x="1110" y="215" width="220" height="65" class="card" />
+  <text x="1220" y="243" text-anchor="middle" class="box-title">Supabase Auth</text>
+  <text x="1220" y="267" text-anchor="middle" class="box-text">JWT + email login</text>
+
+  <rect x="1110" y="310" width="220" height="65" class="card" />
+  <text x="1220" y="338" text-anchor="middle" class="box-title">REST API</text>
+  <text x="1220" y="362" text-anchor="middle" class="box-text">Auto-generated APIs</text>
+
+  <rect x="1110" y="405" width="220" height="65" class="card" />
+  <text x="1220" y="433" text-anchor="middle" class="box-title">RLS Policies</text>
+  <text x="1220" y="457" text-anchor="middle" class="box-text">Role-based access</text>
+
+  <rect x="1110" y="500" width="220" height="65" class="card" />
+  <text x="1220" y="528" text-anchor="middle" class="box-title">PostgreSQL DB</text>
+  <text x="1220" y="552" text-anchor="middle" class="box-text">Core persistence</text>
+
+  <rect x="1105" y="595" width="230" height="145" class="dbtable" />
+  <text x="1220" y="622" text-anchor="middle" class="box-title">Tables</text>
+  <text x="1125" y="650" class="box-text">profiles • goals</text>
+  <text x="1125" y="675" class="box-text">goal_cycles • achievements</text>
+  <text x="1125" y="700" class="box-text">checkin_comments</text>
+  <text x="1125" y="725" class="box-text">audit_logs • shared goals</text>
+
+  <!-- Resend -->
+  <rect x="750" y="835" width="610" height="70" class="card resend" />
+  <text x="780" y="878" class="layer-title">Resend API — Transactional Emails</text>
+  <text x="1130" y="878" class="box-text">Goal submitted • approved • returned</text>
+
+  <!-- Arrows -->
+  <path d="M270 265 C320 265 350 255 420 255" class="arrow-gray" />
+  <path d="M270 445 C320 445 350 360 420 360" class="arrow-gray" />
+  <path d="M270 640 C320 640 350 680 420 680" class="arrow-gray" />
+
+  <path d="M640 255 C700 255 725 255 780 255" class="arrow" />
+  <path d="M990 255 C1040 255 1060 245 1110 245" class="arrow" />
+  <path d="M990 380 C1040 380 1060 342 1110 342" class="arrow" />
+  <path d="M1220 375 L1220 405" class="arrow" />
+  <path d="M1220 470 L1220 500" class="arrow" />
+  <path d="M1220 565 L1220 595" class="arrow" />
+
+  <path d="M640 555 C700 555 725 555 780 555" class="arrow" />
+  <path d="M885 605 L885 835" class="arrow" />
+
+  <!-- Footer -->
+  <text x="700" y="925" text-anchor="middle" class="small">GitHub: github.com/shivangiS04/KaamKaaj  •  Live: kaam-kaaj-blue.vercel.app/login</text>
+</svg>
