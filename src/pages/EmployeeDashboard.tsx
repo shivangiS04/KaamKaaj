@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { LogOut, Target, CheckSquare, Plus } from "lucide-react";
 import { toast } from "../utils/toast";
+import { calculateScore } from "../utils/scoreCalculator";
 import { NotificationBell } from "../components/NotificationBell";
 import { ThemeToggle } from "../components/ThemeToggle";
 import {
@@ -96,7 +97,7 @@ export const EmployeeDashboard: React.FC = () => {
         let goalsQuery = supabase
           .from("goals")
           .select(
-            "id, title, status, updated_at, thrust_area, uom_type, target_value",
+            "id, title, status, updated_at, thrust_area, uom_type, target_value, target_date",
           )
           .eq("employee_id", profile.id)
           .order("updated_at", { ascending: false });
@@ -205,10 +206,13 @@ export const EmployeeDashboard: React.FC = () => {
         } else {
           const { data: trendAchievements, error: trendError } = await supabase
             .from("achievements")
-            .select("goal_id, quarter, score")
+            .select("goal_id, quarter, score, actual_value, actual_date")
             .in("goal_id", approvedGoalIds);
 
           if (trendError) throw trendError;
+
+          // Build a lookup: goalId → goal metadata (needed to recompute score)
+          const goalById = new Map(approvedGoals.map((g) => [g.id, g]));
 
           const quarters: Array<"Q1" | "Q2" | "Q3" | "Q4"> = [
             "Q1",
@@ -219,7 +223,7 @@ export const EmployeeDashboard: React.FC = () => {
           const base = quarters.map((q) => {
             const row: Record<string, number | string | null> = { quarter: q };
             approvedGoalIds.forEach((goalId) => {
-              row[goalId] = null;
+              row[goalId] = null; // null = no data yet; line will stop here
             });
             return row;
           });
@@ -227,10 +231,34 @@ export const EmployeeDashboard: React.FC = () => {
           (trendAchievements || []).forEach((a) => {
             const idx = quarters.indexOf(a.quarter);
             if (idx === -1) return;
-            base[idx][a.goal_id] = Math.max(
-              0,
-              Math.min(100, toNumber(a.score)),
-            );
+
+            let resolvedScore: number | null = null;
+
+            if (a.score !== null && a.score !== undefined) {
+              // Prefer the stored score when available
+              resolvedScore = Math.max(0, Math.min(100, toNumber(a.score)));
+            } else {
+              // Score not stored yet — try recomputing from raw actual values
+              const goal = goalById.get(a.goal_id);
+              if (goal) {
+                const computed = calculateScore({
+                  uomType: goal.uom_type,
+                  targetValue: goal.target_value,
+                  actualValue: a.actual_value ?? null,
+                  targetDate: goal.target_date ?? null,
+                  actualDate: a.actual_date ?? null,
+                });
+                if (computed !== null) {
+                  resolvedScore = Math.max(0, Math.min(100, computed));
+                }
+              }
+            }
+
+            // Only plot the point when we have a real score — keeps the line
+            // from dropping to zero for quarters with no meaningful data.
+            if (resolvedScore !== null) {
+              base[idx][a.goal_id] = resolvedScore;
+            }
           });
 
           setTrendData(base);
