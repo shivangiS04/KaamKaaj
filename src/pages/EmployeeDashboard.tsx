@@ -577,55 +577,77 @@ export const EmployeeDashboard: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900 mb-4">
             Achievement Trend (Q1–Q4)
           </h2>
-          {trendGoals.length === 0 ? (
-            <div className="text-sm text-gray-500">
-              No approved goals found.
-            </div>
-          ) : !trendData.some((row) =>
-              trendGoals.some((g) => row[g.id] !== null),
-            ) ? (
-            <div className="flex flex-col items-center justify-center h-[300px] text-center">
-              <p className="text-gray-400 text-sm font-medium">
-                No achievement data yet for Q1
-              </p>
-              <p className="text-gray-400 text-xs mt-1">
-                Submit your Q1 achievements to see your score trend here.
-              </p>
-            </div>
-          ) : (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={trendData}
-                  margin={{ top: 8, right: 24, left: 0, bottom: 24 }}
+          {(() => {
+            if (trendGoals.length === 0) {
+              return (
+                <div className="text-sm text-gray-500">
+                  No approved goals found.
+                </div>
+              );
+            }
+
+            const hasData = trendData.some((row) =>
+              Object.values(row).some(
+                (v) =>
+                  v !== null &&
+                  v !== "Q1" &&
+                  v !== "Q2" &&
+                  v !== "Q3" &&
+                  v !== "Q4",
+              ),
+            );
+
+            if (!hasData) {
+              return (
+                <div
+                  className="flex flex-col items-center justify-center text-center"
+                  style={{ minHeight: "300px" }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="quarter" tick={{ fontSize: 12 }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                  <Tooltip content={trendTooltip} />
-                  <Legend
-                    verticalAlign="bottom"
-                    wrapperStyle={{ fontSize: "12px" }}
-                    formatter={(value) =>
-                      trendGoalTitleById.get(String(value)) ?? String(value)
-                    }
-                  />
-                  {trendGoals.map((g) => (
-                    <Line
-                      key={g.id}
-                      type="linear"
-                      dataKey={g.id}
-                      stroke={g.color}
-                      strokeWidth={2}
-                      dot={false}
-                      connectNulls={false}
-                      isAnimationActive={false}
+                  <p className="text-gray-400 text-sm font-medium">
+                    Complete your Q1 check-in to see trends
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Submit your Q1 achievements to see your score trend here.
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ width: "100%", minHeight: "300px" }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={trendData}
+                    margin={{ top: 8, right: 24, left: 0, bottom: 24 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="quarter" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                    <Tooltip content={trendTooltip} />
+                    <Legend
+                      verticalAlign="bottom"
+                      wrapperStyle={{ fontSize: "12px" }}
+                      formatter={(value) =>
+                        trendGoalTitleById.get(String(value)) ?? String(value)
+                      }
                     />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+                    {trendGoals.map((g) => (
+                      <Line
+                        key={g.id}
+                        type="linear"
+                        dataKey={g.id}
+                        stroke={g.color}
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Goals Section */}
