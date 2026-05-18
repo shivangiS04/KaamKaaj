@@ -1,58 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
-import { calculateScore } from '../utils/scoreCalculator';
-import { validateCheckinWindow } from '../utils/checkinWindow';
-import { SkeletonBlock } from '../components/Skeleton';
-import { PageHeaderSkeleton } from '../components/PageSkeletons';
-import { NotificationBell } from '../components/NotificationBell';
-import { ThemeToggle } from '../components/ThemeToggle';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import { ArrowLeft, Save, AlertCircle, CheckCircle } from "lucide-react";
+import { calculateScore } from "../utils/scoreCalculator";
+import { validateCheckinWindow } from "../utils/checkinWindow";
+import { SkeletonBlock } from "../components/Skeleton";
+import { PageHeaderSkeleton } from "../components/PageSkeletons";
+import { NotificationBell } from "../components/NotificationBell";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 interface Goal {
   id: string;
   title: string;
   thrust_area: string;
-  uom_type: 'numeric_min' | 'numeric_max' | 'timeline' | 'zero';
+  uom_type: "numeric_min" | "numeric_max" | "timeline" | "zero";
   target_value: number | null;
   target_date: string | null;
   weightage: number;
-  status: 'draft' | 'submitted' | 'approved' | 'returned';
+  status: "draft" | "submitted" | "approved" | "returned";
 }
 
 interface Achievement {
   id?: string;
   goal_id: string;
-  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  quarter: "Q1" | "Q2" | "Q3" | "Q4";
   actual_value: number | null;
   actual_date: string | null;
-  progress_status: 'not_started' | 'on_track' | 'completed';
+  progress_status: "not_started" | "on_track" | "completed";
   score: number | null;
 }
 
-const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'] as const;
+const QUARTERS = ["Q1", "Q2", "Q3", "Q4"] as const;
 
 const PROGRESS_STATUS_OPTIONS = [
-  { value: 'not_started', label: 'Not Started' },
-  { value: 'on_track', label: 'On Track' },
-  { value: 'completed', label: 'Completed' },
+  { value: "not_started", label: "Not Started" },
+  { value: "on_track", label: "On Track" },
+  { value: "completed", label: "Completed" },
 ];
 
 export const AchievementInput: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedQuarter, setSelectedQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q1');
+  const [selectedQuarter, setSelectedQuarter] = useState<
+    "Q1" | "Q2" | "Q3" | "Q4"
+  >("Q1");
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [achievements, setAchievements] = useState<Record<string, Achievement>>({});
+  const [achievements, setAchievements] = useState<Record<string, Achievement>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [checkInWindow, setCheckInWindow] = useState<{ open: boolean; message: string }>({
+  const [error, setError] = useState("");
+  const [checkInWindow, setCheckInWindow] = useState<{
+    open: boolean;
+    message: string;
+  }>({
     open: true,
-    message: '',
+    message: "",
   });
-  const [selectedQuarterOpen, setSelectedQuarterOpen] = useState<boolean | null>(null);
+  const [selectedQuarterOpen, setSelectedQuarterOpen] = useState<
+    boolean | null
+  >(null);
 
   useEffect(() => {
     fetchGoalsAndAchievements();
@@ -62,21 +71,23 @@ export const AchievementInput: React.FC = () => {
   const checkCheckInWindow = async () => {
     try {
       const { data: cycle } = await supabase
-        .from('goal_cycles')
-        .select('*')
-        .eq('is_active', true)
+        .from("goal_cycles")
+        .select("*")
+        .eq("is_active", true)
         .maybeSingle();
 
-      setSelectedQuarterOpen(Boolean(cycle?.checkin_windows?.[selectedQuarter]));
+      setSelectedQuarterOpen(
+        Boolean(cycle?.checkin_windows?.[selectedQuarter]),
+      );
 
       const validation = validateCheckinWindow(cycle);
       if (!validation.allowed) {
         setCheckInWindow({ open: false, message: validation.message });
       } else {
-        setCheckInWindow({ open: true, message: '' });
+        setCheckInWindow({ open: true, message: "" });
       }
     } catch (err) {
-      console.error('Error checking check-in window:', err);
+      console.error("Error checking check-in window:", err);
     }
   };
 
@@ -84,10 +95,10 @@ export const AchievementInput: React.FC = () => {
     try {
       // Fetch approved goals
       const { data: goalsData, error: goalsError } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('employee_id', user!.id)
-        .eq('status', 'approved');
+        .from("goals")
+        .select("*")
+        .eq("employee_id", user!.id)
+        .eq("status", "approved");
 
       if (goalsError) throw goalsError;
       setGoals(goalsData || []);
@@ -98,11 +109,12 @@ export const AchievementInput: React.FC = () => {
       }
 
       const goalIds = goalsData.map((g) => g.id);
-      const { data: achievementsData, error: achievementsError } = await supabase
-        .from('achievements')
-        .select('*')
-        .in('goal_id', goalIds)
-        .eq('quarter', selectedQuarter);
+      const { data: achievementsData, error: achievementsError } =
+        await supabase
+          .from("achievements")
+          .select("*")
+          .in("goal_id", goalIds)
+          .eq("quarter", selectedQuarter);
 
       if (achievementsError) throw achievementsError;
 
@@ -113,7 +125,7 @@ export const AchievementInput: React.FC = () => {
           quarter: selectedQuarter,
           actual_value: null,
           actual_date: null,
-          progress_status: 'not_started',
+          progress_status: "not_started",
           score: null,
         };
       });
@@ -124,7 +136,7 @@ export const AchievementInput: React.FC = () => {
 
       setAchievements(achievementsMap);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch goals');
+      setError(err.message || "Failed to fetch goals");
     } finally {
       setLoading(false);
     }
@@ -146,7 +158,11 @@ export const AchievementInput: React.FC = () => {
     return Number.isFinite(num) ? num : null;
   };
 
-  const updateAchievement = (goalId: string, field: keyof Achievement, value: any) => {
+  const updateAchievement = (
+    goalId: string,
+    field: keyof Achievement,
+    value: any,
+  ) => {
     const goal = goals.find((g) => g.id === goalId);
     if (!goal) return;
 
@@ -155,7 +171,7 @@ export const AchievementInput: React.FC = () => {
       quarter: selectedQuarter,
       actual_value: null,
       actual_date: null,
-      progress_status: 'not_started',
+      progress_status: "not_started",
       score: null,
     };
 
@@ -168,7 +184,7 @@ export const AchievementInput: React.FC = () => {
 
   const saveAchievements = async () => {
     setSaving(true);
-    setError('');
+    setError("");
 
     try {
       const achievementsToUpsert = Object.values(achievements).map((a) => ({
@@ -182,17 +198,17 @@ export const AchievementInput: React.FC = () => {
 
       for (const achievement of achievementsToUpsert) {
         const { error } = await supabase
-          .from('achievements')
+          .from("achievements")
           .upsert(achievement, {
-            onConflict: 'goal_id,shared_goal_assignment_id,quarter',
+            onConflict: "goal_id,shared_goal_assignment_id,quarter",
           });
 
         if (error) throw error;
       }
 
-      navigate('/employee');
+      navigate("/employee");
     } catch (err: any) {
-      setError(err.message || 'Failed to save achievements');
+      setError(err.message || "Failed to save achievements");
     } finally {
       setSaving(false);
     }
@@ -256,12 +272,14 @@ export const AchievementInput: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/employee')}
+                onClick={() => navigate("/employee")}
                 className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 <ArrowLeft className="h-6 w-6" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Quarterly Achievement Input</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Quarterly Achievement Input
+              </h1>
             </div>
             <div className="flex items-center space-x-2">
               <ThemeToggle />
@@ -274,9 +292,13 @@ export const AchievementInput: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {selectedQuarterOpen === false && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            This check-in window is currently closed. Contact your Admin to open it.
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center mb-6">
+            <p className="text-yellow-800 font-medium">
+              This check-in window is currently closed.
+            </p>
+            <p className="text-yellow-600 text-sm mt-1">
+              Contact your Admin to open it.
+            </p>
           </div>
         )}
         {!checkInWindow.open && (
@@ -294,7 +316,9 @@ export const AchievementInput: React.FC = () => {
 
         {/* Quarter Selector */}
         <div className="mb-6 bg-white rounded-lg shadow p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Quarter</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Quarter
+          </label>
           <div className="flex space-x-2">
             {QUARTERS.map((quarter) => (
               <button
@@ -302,8 +326,8 @@ export const AchievementInput: React.FC = () => {
                 onClick={() => setSelectedQuarter(quarter)}
                 className={`px-4 py-2 rounded-md font-medium ${
                   selectedQuarter === quarter
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {quarter}
@@ -312,11 +336,14 @@ export const AchievementInput: React.FC = () => {
           </div>
         </div>
 
-        {selectedQuarterOpen !== true ? null : goals.length === 0 ? (
+        {selectedQuarterOpen === null ? null : selectedQuarterOpen ===
+          false ? null : goals.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-12">
               <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No approved goals</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No approved goals
+              </h3>
               <p className="mt-1 text-sm text-gray-500">
                 You need approved goals to input achievements.
               </p>
@@ -330,46 +357,73 @@ export const AchievementInput: React.FC = () => {
                 quarter: selectedQuarter,
                 actual_value: null,
                 actual_date: null,
-                progress_status: 'not_started',
+                progress_status: "not_started",
                 score: null,
               };
 
               return (
                 <div key={goal.id} className="bg-white rounded-lg shadow p-6">
                   <div className="mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">{goal.title}</h3>
-                    <p className="text-sm text-gray-600">{goal.thrust_area} • Weightage: {goal.weightage}%</p>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {goal.title}
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Target: {goal.uom_type === 'timeline' ? goal.target_date : goal.uom_type === 'zero' ? '0' : goal.target_value}
+                      {goal.thrust_area} • Weightage: {goal.weightage}%
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Target:{" "}
+                      {goal.uom_type === "timeline"
+                        ? goal.target_date
+                        : goal.uom_type === "zero"
+                          ? "0"
+                          : goal.target_value}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {goal.uom_type === 'timeline' ? (
+                    {goal.uom_type === "timeline" ? (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Actual Date
                         </label>
                         <input
                           type="date"
-                        value={achievement.actual_date !== null && achievement.actual_date !== undefined ? achievement.actual_date : ''}
-                        onChange={(e) =>
-                          updateAchievement(goal.id, 'actual_date', e.target.value ? e.target.value : null)
-                        }
+                          value={
+                            achievement.actual_date !== null &&
+                            achievement.actual_date !== undefined
+                              ? achievement.actual_date
+                              : ""
+                          }
+                          onChange={(e) =>
+                            updateAchievement(
+                              goal.id,
+                              "actual_date",
+                              e.target.value ? e.target.value : null,
+                            )
+                          }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </div>
-                    ) : goal.uom_type !== 'zero' ? (
+                    ) : goal.uom_type !== "zero" ? (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Actual Value
                         </label>
                         <input
                           type="number"
-                          value={achievement.actual_value !== null && achievement.actual_value !== undefined ? achievement.actual_value : ''}
+                          value={
+                            achievement.actual_value !== null &&
+                            achievement.actual_value !== undefined
+                              ? achievement.actual_value
+                              : ""
+                          }
                           onChange={(e) =>
-                            updateAchievement(goal.id, 'actual_value', parseNumberInput(e.target.value))
+                            updateAchievement(
+                              goal.id,
+                              "actual_value",
+                              parseNumberInput(e.target.value),
+                            )
                           }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -382,9 +436,18 @@ export const AchievementInput: React.FC = () => {
                         </label>
                         <input
                           type="number"
-                          value={achievement.actual_value !== null && achievement.actual_value !== undefined ? achievement.actual_value : ''}
+                          value={
+                            achievement.actual_value !== null &&
+                            achievement.actual_value !== undefined
+                              ? achievement.actual_value
+                              : ""
+                          }
                           onChange={(e) =>
-                            updateAchievement(goal.id, 'actual_value', parseNumberInput(e.target.value))
+                            updateAchievement(
+                              goal.id,
+                              "actual_value",
+                              parseNumberInput(e.target.value),
+                            )
                           }
                           disabled={!checkInWindow.open}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -398,7 +461,13 @@ export const AchievementInput: React.FC = () => {
                       </label>
                       <select
                         value={achievement.progress_status}
-                        onChange={(e) => updateAchievement(goal.id, 'progress_status', e.target.value)}
+                        onChange={(e) =>
+                          updateAchievement(
+                            goal.id,
+                            "progress_status",
+                            e.target.value,
+                          )
+                        }
                         disabled={!checkInWindow.open}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
@@ -418,7 +487,9 @@ export const AchievementInput: React.FC = () => {
                         {achievement.score !== null ? (
                           <>
                             <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                            <span className="text-lg font-semibold text-gray-900">{achievement.score.toFixed(1)}%</span>
+                            <span className="text-lg font-semibold text-gray-900">
+                              {achievement.score.toFixed(1)}%
+                            </span>
                           </>
                         ) : (
                           <span className="text-gray-400">-</span>
@@ -437,7 +508,7 @@ export const AchievementInput: React.FC = () => {
                 className="flex items-center px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-5 w-5 mr-2" />
-                {saving ? 'Saving...' : 'Save Achievements'}
+                {saving ? "Saving..." : "Save Achievements"}
               </button>
             </div>
           </div>
