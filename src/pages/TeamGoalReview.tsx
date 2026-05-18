@@ -369,19 +369,20 @@ export const TeamGoalReview: React.FC = () => {
         );
       }
 
-      // Email the employee — fire-and-forget
+      // Email the employee — use data already in state, no extra DB query
       try {
-        const { data: returnedGoalData } = await supabase
-          .from("goals")
-          .select("title, employee_id, profiles!goals_employee_id_fkey(email)")
-          .eq("id", goalToReturn)
-          .single();
+        const ownerData = employeeGoals.find((eg) =>
+          eg.goals.some((g) => g.id === goalToReturn),
+        );
+        const goalTitle =
+          ownerData?.goals.find((g) => g.id === goalToReturn)?.title ??
+          "Your goal";
+        const employeeEmail = ownerData?.employee.email;
 
-        const employeeEmail = (returnedGoalData?.profiles as any)?.email;
         if (employeeEmail) {
           const { subject, html } = emailTemplates.goalReturned(
             managerName,
-            returnedGoalData?.title ?? "Your goal",
+            goalTitle,
             returnComment,
           );
           await sendEmail(employeeEmail, subject, html);

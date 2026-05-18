@@ -1,4 +1,16 @@
 /**
+ * Redirects @demo.com addresses to the real address set in
+ * VITE_DEMO_EMAIL, so test accounts still receive emails during demos.
+ * All other addresses pass through unchanged.
+ */
+function resolveEmail(email: string): string {
+  if (email.endsWith("@demo.com")) {
+    return import.meta.env.VITE_DEMO_EMAIL || email;
+  }
+  return email;
+}
+
+/**
  * Sends an email via the /api/send-email Vercel serverless function.
  * The actual Resend API key lives server-side only (RESEND_API_KEY),
  * so the browser never sees it.
@@ -8,23 +20,29 @@ export async function sendEmail(
   subject: string,
   html: string,
 ): Promise<{ success: boolean }> {
+  const actualTo = resolveEmail(to);
+
   try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, html }),
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: actualTo, subject, html }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('[email] send failed:', data.error);
-      throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
+      console.error("[email] send failed:", data.error);
+      throw new Error(
+        typeof data.error === "string"
+          ? data.error
+          : JSON.stringify(data.error),
+      );
     }
 
     return { success: true };
   } catch (err) {
-    console.error('[email] sendEmail error:', err);
+    console.error("[email] sendEmail error:", err);
     return { success: false };
   }
 }
@@ -47,7 +65,7 @@ export const emailTemplates = {
         <div style="padding: 24px; background: #f9fafb; border-radius: 0 0 8px 8px;">
           <h2 style="color: #111827;">Goals Submitted for Review</h2>
           <p style="color: #374151;">
-            ${employeeName} has submitted <strong>${goalCount} goal${goalCount === 1 ? '' : 's'}</strong> for your approval.
+            ${employeeName} has submitted <strong>${goalCount} goal${goalCount === 1 ? "" : "s"}</strong> for your approval.
           </p>
           <a href="https://kaam-kaaj-blue.vercel.app/manager/team-review"
              style="background: #6366f1; color: white; padding: 12px 24px;
