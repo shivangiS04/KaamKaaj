@@ -211,6 +211,15 @@ export const EmployeeDashboard: React.FC = () => {
 
           if (trendError) throw trendError;
 
+          console.log(
+            "[TrendChart] approved goal IDs being queried:",
+            approvedGoalIds,
+          );
+          console.log(
+            "[TrendChart] raw achievements from DB:",
+            trendAchievements,
+          );
+
           // Build a lookup: goalId → goal metadata (needed to recompute score)
           const goalById = new Map(approvedGoals.map((g) => [g.id, g]));
 
@@ -260,6 +269,11 @@ export const EmployeeDashboard: React.FC = () => {
               base[idx][a.goal_id] = resolvedScore;
             }
           });
+
+          console.log(
+            "[TrendChart] final chart data passed to Recharts:",
+            base,
+          );
 
           setTrendData(base);
           setTrendGoals(
@@ -566,6 +580,17 @@ export const EmployeeDashboard: React.FC = () => {
           {trendGoals.length === 0 ? (
             <div className="text-sm text-gray-500">
               No approved goals found.
+            </div>
+          ) : !trendData.some((row) =>
+              trendGoals.some((g) => row[g.id] !== null),
+            ) ? (
+            <div className="flex flex-col items-center justify-center h-[300px] text-center">
+              <p className="text-gray-400 text-sm font-medium">
+                No achievement data yet for Q1
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Submit your Q1 achievements to see your score trend here.
+              </p>
             </div>
           ) : (
             <div className="h-[300px]">
