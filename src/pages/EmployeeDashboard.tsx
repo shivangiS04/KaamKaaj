@@ -40,16 +40,37 @@ export const EmployeeDashboard: React.FC = () => {
   const [plannedVsActual, setPlannedVsActual] = useState<PlannedVsActualDatum[]>([]);
   const [goalsByThrustArea, setGoalsByThrustArea] = useState<{ name: string; value: number }[]>([]);
 
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    }
+    return 0;
+  };
+
   useEffect(() => {
     if (!profile) return;
 
     const fetchStats = async () => {
       try {
-        const { data: goals, error: goalsError } = await supabase
+        const { data: activeCycle, error: activeCycleError } = await supabase
+          .from('goal_cycles')
+          .select('id')
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (activeCycleError) throw activeCycleError;
+
+        let goalsQuery = supabase
           .from('goals')
           .select('id, title, status, updated_at, thrust_area, uom_type, target_value')
           .eq('employee_id', profile.id)
           .order('updated_at', { ascending: false });
+
+        if (activeCycle?.id) goalsQuery = goalsQuery.eq('goal_cycle_id', activeCycle.id);
+
+        const { data: goals, error: goalsError } = await goalsQuery;
 
         if (goalsError) throw goalsError;
 
@@ -101,22 +122,24 @@ export const EmployeeDashboard: React.FC = () => {
 
         const { data: q1Achievements, error: q1Error } = await supabase
           .from('achievements')
-          .select('goal_id, actual_value')
+          .select('goal_id, actual_value, updated_at')
           .eq('quarter', 'Q1')
-          .in('goal_id', numericGoalIds);
+          .in('goal_id', numericGoalIds)
+          .order('updated_at', { ascending: false });
 
         if (q1Error) throw q1Error;
 
         const actualByGoalId = new Map<string, number>();
         (q1Achievements || []).forEach((a) => {
-          actualByGoalId.set(a.goal_id, (actualByGoalId.get(a.goal_id) ?? 0) + (a.actual_value ?? 0));
+          if (actualByGoalId.has(a.goal_id)) return;
+          actualByGoalId.set(a.goal_id, toNumber(a.actual_value));
         });
 
         setPlannedVsActual(
           numericGoals
             .map((g) => ({
               goal: g.title,
-              planned: g.uom_type === 'zero' ? 0 : g.target_value ?? 0,
+              planned: g.uom_type === 'zero' ? 0 : toNumber(g.target_value),
               actual: actualByGoalId.get(g.id) ?? 0,
             }))
             .sort((a, b) => b.planned - a.planned)
