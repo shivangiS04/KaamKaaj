@@ -200,6 +200,68 @@ export const AchievementReport: React.FC = () => {
   };
 
   const handleExportCSV = () => {
+    const formatUomType = (raw: string) => {
+      if (raw === 'numeric_min') return 'Numeric Min';
+      if (raw === 'numeric_max') return 'Numeric Max';
+      if (raw === 'timeline') return 'Timeline';
+      if (raw === 'zero') return 'Zero-based';
+      return raw;
+    };
+
+    const formatStatus = (raw: string | null) => {
+      if (!raw) return '';
+      if (raw === 'on_track') return 'On Track';
+      if (raw === 'not_started') return 'Not Started';
+      if (raw === 'completed') return 'Completed';
+      return raw;
+    };
+
+    const statusWithZeroOverride = ({
+      uomType,
+      status,
+      actual,
+      score,
+    }: {
+      uomType: string;
+      status: string | null;
+      actual: number | string | null;
+      score: number | null;
+    }) => {
+      if (uomType === 'zero' && actual === 0 && score === 100) return 'Completed';
+      return formatStatus(status);
+    };
+
+    const exportRows = filteredData.map((row) => ({
+      ...row,
+      uom_type: formatUomType(row.uom_type),
+      target_value: row.target_value === null ? '-' : row.target_value,
+      target_date: row.target_date ? formatDateForCSV(row.target_date) : '-',
+      q1_status: statusWithZeroOverride({
+        uomType: row.uom_type,
+        status: row.q1_status,
+        actual: row.q1_actual,
+        score: row.q1_score,
+      }),
+      q2_status: statusWithZeroOverride({
+        uomType: row.uom_type,
+        status: row.q2_status,
+        actual: row.q2_actual,
+        score: row.q2_score,
+      }),
+      q3_status: statusWithZeroOverride({
+        uomType: row.uom_type,
+        status: row.q3_status,
+        actual: row.q3_actual,
+        score: row.q3_score,
+      }),
+      q4_status: statusWithZeroOverride({
+        uomType: row.uom_type,
+        status: row.q4_status,
+        actual: row.q4_actual,
+        score: row.q4_score,
+      }),
+    }));
+
     const columns: CsvColumn[] = [
       { key: 'employee_name', header: 'Employee Name' },
       { key: 'employee_email', header: 'Employee Email' },
@@ -207,16 +269,8 @@ export const AchievementReport: React.FC = () => {
       { key: 'goal_title', header: 'Goal Title' },
       { key: 'thrust_area', header: 'Thrust Area' },
       { key: 'uom_type', header: 'UoM Type' },
-      {
-        key: 'target_value',
-        header: 'Target Value',
-        format: (v) => (v !== null ? String(v) : ''),
-      },
-      {
-        key: 'target_date',
-        header: 'Target Date',
-        format: (v) => formatDateForCSV(v),
-      },
+      { key: 'target_value', header: 'Target Value', format: (v) => String(v) },
+      { key: 'target_date', header: 'Target Date', format: (v) => String(v) },
       { key: 'weightage', header: 'Weightage (%)' },
       { key: 'q1_actual', header: 'Q1 Actual' },
       { key: 'q1_status', header: 'Q1 Status' },
@@ -248,7 +302,7 @@ export const AchievementReport: React.FC = () => {
       },
     ];
 
-    exportToCSV(filteredData, columns, 'achievement_report');
+    exportToCSV(exportRows, columns, 'achievement_report');
     toast.success('Report exported successfully');
   };
 
