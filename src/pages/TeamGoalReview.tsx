@@ -1,12 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { ArrowLeft, User, CheckCircle, XCircle, Edit2, Save } from 'lucide-react';
-import { toast } from '../utils/toast';
-import { PageHeaderSkeleton, ListRowsSkeleton } from '../components/PageSkeletons';
-import { NotificationBell } from '../components/NotificationBell';
-import { ThemeToggle } from '../components/ThemeToggle';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { sendEmail, emailTemplates } from "../lib/email";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
+import {
+  ArrowLeft,
+  User,
+  CheckCircle,
+  XCircle,
+  Edit2,
+  Save,
+} from "lucide-react";
+import { toast } from "../utils/toast";
+import {
+  PageHeaderSkeleton,
+  ListRowsSkeleton,
+} from "../components/PageSkeletons";
+import { NotificationBell } from "../components/NotificationBell";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 interface Employee {
   id: string;
@@ -20,11 +31,11 @@ interface Goal {
   title: string;
   description: string | null;
   thrust_area: string;
-  uom_type: 'numeric_min' | 'numeric_max' | 'timeline' | 'zero';
+  uom_type: "numeric_min" | "numeric_max" | "timeline" | "zero";
   target_value: number | null;
   target_date: string | null;
   weightage: number;
-  status: 'draft' | 'submitted' | 'approved' | 'returned';
+  status: "draft" | "submitted" | "approved" | "returned";
   is_locked: boolean;
 }
 
@@ -41,13 +52,13 @@ export const TeamGoalReview: React.FC = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [editingGoal, setEditingGoal] = useState<string | null>(null);
   const [editedValues, setEditedValues] = useState<Record<string, any>>({});
-  const [returnComment, setReturnComment] = useState('');
+  const [returnComment, setReturnComment] = useState("");
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [goalToReturn, setGoalToReturn] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  const managerName = profile?.name || 'Your manager';
+  const managerName = profile?.name || "Your manager";
 
   const createNotification = async ({
     userId,
@@ -58,7 +69,7 @@ export const TeamGoalReview: React.FC = () => {
     message: string;
     metadata: Record<string, unknown>;
   }) => {
-    await supabase.from('notifications').insert({
+    await supabase.from("notifications").insert({
       user_id: userId,
       message,
       metadata,
@@ -73,9 +84,9 @@ export const TeamGoalReview: React.FC = () => {
     try {
       // Fetch team members
       const { data: teamMembers, error: teamError } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('manager_id', user!.id);
+        .from("profiles")
+        .select("id, name, email")
+        .eq("manager_id", user!.id);
 
       if (teamError) throw teamError;
 
@@ -89,11 +100,11 @@ export const TeamGoalReview: React.FC = () => {
 
       for (const member of teamMembers) {
         const { data: goals, error: goalsError } = await supabase
-          .from('goals')
-          .select('*')
-          .eq('employee_id', member.id)
-          .eq('status', 'submitted')
-          .order('created_at', { ascending: true });
+          .from("goals")
+          .select("*")
+          .eq("employee_id", member.id)
+          .eq("status", "submitted")
+          .order("created_at", { ascending: true });
 
         if (goalsError) throw goalsError;
 
@@ -109,7 +120,7 @@ export const TeamGoalReview: React.FC = () => {
 
       setEmployeeGoals(employeeGoalsData);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to fetch team goals');
+      toast.error(err.message || "Failed to fetch team goals");
     } finally {
       setLoading(false);
     }
@@ -129,20 +140,20 @@ export const TeamGoalReview: React.FC = () => {
     try {
       const values = editedValues[goalId];
       const { error } = await supabase
-        .from('goals')
+        .from("goals")
         .update({
           target_value: values.target_value,
           weightage: values.weightage,
         })
-        .eq('id', goalId);
+        .eq("id", goalId);
 
       if (error) throw error;
 
-      toast.success('Goal updated successfully');
+      toast.success("Goal updated successfully");
       setEditingGoal(null);
       fetchTeamGoals();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update goal');
+      toast.error(err.message || "Failed to update goal");
     }
   };
 
@@ -150,17 +161,21 @@ export const TeamGoalReview: React.FC = () => {
     setProcessing(true);
     try {
       const { error } = await supabase
-        .from('goals')
+        .from("goals")
         .update({
-          status: 'approved',
+          status: "approved",
           is_locked: true,
         })
-        .eq('id', goalId);
+        .eq("id", goalId);
 
       if (error) throw error;
 
       try {
-        const { data } = await supabase.from('goals').select('id, employee_id, title').eq('id', goalId).single();
+        const { data } = await supabase
+          .from("goals")
+          .select("id, employee_id, title")
+          .eq("id", goalId)
+          .single();
         if (data?.employee_id) {
           await createNotification({
             userId: data.employee_id,
@@ -168,45 +183,50 @@ export const TeamGoalReview: React.FC = () => {
             metadata: {
               goal_id: data.id,
               goal_title: data.title,
-              status: 'approved',
+              status: "approved",
               manager_name: managerName,
             },
           });
         }
-      } catch {
-      }
+      } catch {}
 
       try {
-        const { error: auditError } = await supabase.from('audit_logs').insert({
-          table_name: 'goals',
+        const { error: auditError } = await supabase.from("audit_logs").insert({
+          table_name: "goals",
           record_id: goalId,
-          action: 'update',
+          action: "update",
           changed_by: user!.id,
-          old_data: { status: 'submitted' },
-          new_data: { status: 'approved', is_locked: true },
+          old_data: { status: "submitted" },
+          new_data: { status: "approved", is_locked: true },
           changed_at: new Date().toISOString(),
         });
 
         if (auditError) throw auditError;
       } catch (auditErr: unknown) {
-        toast.error(auditErr instanceof Error ? auditErr.message : 'Failed to write audit log');
+        toast.error(
+          auditErr instanceof Error
+            ? auditErr.message
+            : "Failed to write audit log",
+        );
       }
 
-      toast.success('Goal approved successfully');
+      toast.success("Goal approved successfully");
       fetchTeamGoals();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to approve goal');
+      toast.error(err.message || "Failed to approve goal");
     } finally {
       setProcessing(false);
     }
   };
 
   const handleApproveAllForEmployee = async (employeeId: string) => {
-    const employeeData = employeeGoals.find((eg) => eg.employee.id === employeeId);
+    const employeeData = employeeGoals.find(
+      (eg) => eg.employee.id === employeeId,
+    );
     if (!employeeData) return;
 
     if (employeeData.totalWeightage !== 100) {
-      toast.error('Cannot approve: Total weightage must equal 100%');
+      toast.error("Cannot approve: Total weightage must equal 100%");
       return;
     }
 
@@ -214,20 +234,20 @@ export const TeamGoalReview: React.FC = () => {
     try {
       const goalIds = employeeData.goals.map((g) => g.id);
       const { error } = await supabase
-        .from('goals')
+        .from("goals")
         .update({
-          status: 'approved',
+          status: "approved",
           is_locked: true,
         })
-        .in('id', goalIds);
+        .in("id", goalIds);
 
       if (error) throw error;
 
       try {
         const { data: goals } = await supabase
-          .from('goals')
-          .select('id, employee_id, title')
-          .in('id', goalIds);
+          .from("goals")
+          .select("id, employee_id, title")
+          .in("id", goalIds);
         const rows = (goals || [])
           .filter((g: any) => Boolean(g.employee_id))
           .map((g: any) => ({
@@ -236,38 +256,53 @@ export const TeamGoalReview: React.FC = () => {
             metadata: {
               goal_id: g.id,
               goal_title: g.title,
-              status: 'approved',
+              status: "approved",
               manager_name: managerName,
             },
           }));
         if (rows.length > 0) {
-          await supabase.from('notifications').insert(rows);
+          await supabase.from("notifications").insert(rows);
         }
-      } catch {
-      }
+      } catch {}
 
       try {
         for (const goalId of goalIds) {
-          const { error: auditError } = await supabase.from('audit_logs').insert({
-            table_name: 'goals',
-            record_id: goalId,
-            action: 'update',
-            changed_by: user!.id,
-            old_data: { status: 'submitted' },
-            new_data: { status: 'approved', is_locked: true },
-            changed_at: new Date().toISOString(),
-          });
+          const { error: auditError } = await supabase
+            .from("audit_logs")
+            .insert({
+              table_name: "goals",
+              record_id: goalId,
+              action: "update",
+              changed_by: user!.id,
+              old_data: { status: "submitted" },
+              new_data: { status: "approved", is_locked: true },
+              changed_at: new Date().toISOString(),
+            });
 
           if (auditError) throw auditError;
         }
       } catch (auditErr: unknown) {
-        toast.error(auditErr instanceof Error ? auditErr.message : 'Failed to write audit log');
+        toast.error(
+          auditErr instanceof Error
+            ? auditErr.message
+            : "Failed to write audit log",
+        );
+      }
+
+      // Email the employee — fire-and-forget
+      try {
+        if (employeeData.employee.email) {
+          const { subject, html } = emailTemplates.goalApproved(managerName);
+          await sendEmail(employeeData.employee.email, subject, html);
+        }
+      } catch (emailErr) {
+        console.error("[TeamGoalReview] Approval email failed:", emailErr);
       }
 
       toast.success(`All goals approved for ${employeeData.employee.name}`);
       fetchTeamGoals();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to approve goals');
+      toast.error(err.message || "Failed to approve goals");
     } finally {
       setProcessing(false);
     }
@@ -275,27 +310,29 @@ export const TeamGoalReview: React.FC = () => {
 
   const handleReturnGoal = async () => {
     if (!goalToReturn || !returnComment.trim()) {
-      toast.error('Please provide a comment explaining why the goal is being returned');
+      toast.error(
+        "Please provide a comment explaining why the goal is being returned",
+      );
       return;
     }
 
     setProcessing(true);
     try {
       const { error } = await supabase
-        .from('goals')
+        .from("goals")
         .update({
-          status: 'returned',
+          status: "returned",
           manager_comment: returnComment,
         })
-        .eq('id', goalToReturn);
+        .eq("id", goalToReturn);
 
       if (error) throw error;
 
       try {
         const { data } = await supabase
-          .from('goals')
-          .select('id, employee_id, title')
-          .eq('id', goalToReturn)
+          .from("goals")
+          .select("id, employee_id, title")
+          .eq("id", goalToReturn)
           .single();
         if (data?.employee_id) {
           await createNotification({
@@ -304,38 +341,62 @@ export const TeamGoalReview: React.FC = () => {
             metadata: {
               goal_id: data.id,
               goal_title: data.title,
-              status: 'returned',
+              status: "returned",
               manager_name: managerName,
               manager_comment: returnComment,
             },
           });
         }
-      } catch {
-      }
+      } catch {}
 
       try {
-        const { error: auditError } = await supabase.from('audit_logs').insert({
-          table_name: 'goals',
+        const { error: auditError } = await supabase.from("audit_logs").insert({
+          table_name: "goals",
           record_id: goalToReturn,
-          action: 'update',
+          action: "update",
           changed_by: user!.id,
-          old_data: { status: 'submitted' },
-          new_data: { status: 'returned' },
+          old_data: { status: "submitted" },
+          new_data: { status: "returned" },
           changed_at: new Date().toISOString(),
         });
 
         if (auditError) throw auditError;
       } catch (auditErr: unknown) {
-        toast.error(auditErr instanceof Error ? auditErr.message : 'Failed to write audit log');
+        toast.error(
+          auditErr instanceof Error
+            ? auditErr.message
+            : "Failed to write audit log",
+        );
       }
 
-      toast.success('Goal returned to employee');
+      // Email the employee — fire-and-forget
+      try {
+        const { data: returnedGoalData } = await supabase
+          .from("goals")
+          .select("title, employee_id, profiles!goals_employee_id_fkey(email)")
+          .eq("id", goalToReturn)
+          .single();
+
+        const employeeEmail = (returnedGoalData?.profiles as any)?.email;
+        if (employeeEmail) {
+          const { subject, html } = emailTemplates.goalReturned(
+            managerName,
+            returnedGoalData?.title ?? "Your goal",
+            returnComment,
+          );
+          await sendEmail(employeeEmail, subject, html);
+        }
+      } catch (emailErr) {
+        console.error("[TeamGoalReview] Return email failed:", emailErr);
+      }
+
+      toast.success("Goal returned to employee");
       setShowReturnModal(false);
-      setReturnComment('');
+      setReturnComment("");
       setGoalToReturn(null);
       fetchTeamGoals();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to return goal');
+      toast.error(err.message || "Failed to return goal");
     } finally {
       setProcessing(false);
     }
@@ -357,7 +418,9 @@ export const TeamGoalReview: React.FC = () => {
     );
   }
 
-  const selectedEmployeeData = employeeGoals.find((eg) => eg.employee.id === selectedEmployee);
+  const selectedEmployeeData = employeeGoals.find(
+    (eg) => eg.employee.id === selectedEmployee,
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -367,12 +430,14 @@ export const TeamGoalReview: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/manager')}
+                onClick={() => navigate("/manager")}
                 className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 <ArrowLeft className="h-6 w-6" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Team Goal Review</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Team Goal Review
+              </h1>
             </div>
             <div className="flex items-center space-x-2">
               <ThemeToggle />
@@ -388,16 +453,21 @@ export const TeamGoalReview: React.FC = () => {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-12">
               <User className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No pending reviews</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No pending reviews
+              </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Team members will appear here when they submit their goals for review.
+                Team members will appear here when they submit their goals for
+                review.
               </p>
             </div>
           </div>
         ) : !selectedEmployee ? (
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Team Members with Pending Goals</h2>
+              <h2 className="text-lg font-medium text-gray-900">
+                Team Members with Pending Goals
+              </h2>
             </div>
             <div className="divide-y divide-gray-200">
               {employeeGoals.map((eg) => (
@@ -408,14 +478,22 @@ export const TeamGoalReview: React.FC = () => {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">{eg.employee.name}</h3>
-                      <p className="text-sm text-gray-600">{eg.employee.email}</p>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {eg.employee.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {eg.employee.email}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{eg.goals.length} Goals</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {eg.goals.length} Goals
+                      </p>
                       <p
                         className={`text-sm ${
-                          eg.totalWeightage === 100 ? 'text-green-600' : 'text-red-600'
+                          eg.totalWeightage === 100
+                            ? "text-green-600"
+                            : "text-red-600"
                         }`}
                       >
                         Total: {eg.totalWeightage}%
@@ -432,14 +510,20 @@ export const TeamGoalReview: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6 mb-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{selectedEmployeeData.employee.name}</h2>
-                  <p className="text-sm text-gray-600">{selectedEmployeeData.employee.email}</p>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {selectedEmployeeData.employee.name}
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {selectedEmployeeData.employee.email}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Total Weightage</p>
                   <p
                     className={`text-2xl font-bold ${
-                      selectedEmployeeData.totalWeightage === 100 ? 'text-green-600' : 'text-red-600'
+                      selectedEmployeeData.totalWeightage === 100
+                        ? "text-green-600"
+                        : "text-red-600"
                     }`}
                   >
                     {selectedEmployeeData.totalWeightage}%
@@ -454,8 +538,14 @@ export const TeamGoalReview: React.FC = () => {
                   Back to List
                 </button>
                 <button
-                  onClick={() => handleApproveAllForEmployee(selectedEmployeeData.employee.id)}
-                  disabled={processing || selectedEmployeeData.totalWeightage !== 100}
+                  onClick={() =>
+                    handleApproveAllForEmployee(
+                      selectedEmployeeData.employee.id,
+                    )
+                  }
+                  disabled={
+                    processing || selectedEmployeeData.totalWeightage !== 100
+                  }
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Approve All Goals
@@ -469,36 +559,49 @@ export const TeamGoalReview: React.FC = () => {
                 <div key={goal.id} className="bg-white rounded-lg shadow p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900">{goal.title}</h3>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {goal.title}
+                      </h3>
                       {goal.description && (
-                        <p className="mt-1 text-sm text-gray-600">{goal.description}</p>
+                        <p className="mt-1 text-sm text-gray-600">
+                          {goal.description}
+                        </p>
                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200">
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Thrust Area</p>
-                      <p className="text-sm text-gray-900">{goal.thrust_area}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500">UoM Type</p>
-                      <p className="text-sm text-gray-900 capitalize">
-                        {goal.uom_type.replace('_', ' ')}
+                      <p className="text-xs font-medium text-gray-500">
+                        Thrust Area
+                      </p>
+                      <p className="text-sm text-gray-900">
+                        {goal.thrust_area}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Target</p>
+                      <p className="text-xs font-medium text-gray-500">
+                        UoM Type
+                      </p>
+                      <p className="text-sm text-gray-900 capitalize">
+                        {goal.uom_type.replace("_", " ")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500">
+                        Target
+                      </p>
                       {editingGoal === goal.id ? (
                         <input
                           type="number"
-                          value={editedValues[goal.id]?.target_value || ''}
+                          value={editedValues[goal.id]?.target_value || ""}
                           onChange={(e) =>
                             setEditedValues({
                               ...editedValues,
                               [goal.id]: {
                                 ...editedValues[goal.id],
-                                target_value: parseFloat(e.target.value) || null,
+                                target_value:
+                                  parseFloat(e.target.value) || null,
                               },
                             })
                           }
@@ -506,22 +609,24 @@ export const TeamGoalReview: React.FC = () => {
                         />
                       ) : (
                         <p className="text-sm text-gray-900">
-                          {goal.uom_type === 'timeline'
+                          {goal.uom_type === "timeline"
                             ? goal.target_date
-                            : goal.uom_type === 'zero'
-                            ? '0'
-                            : goal.target_value}
+                            : goal.uom_type === "zero"
+                              ? "0"
+                              : goal.target_value}
                         </p>
                       )}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Weightage</p>
+                      <p className="text-xs font-medium text-gray-500">
+                        Weightage
+                      </p>
                       {editingGoal === goal.id ? (
                         <input
                           type="number"
                           min="10"
                           max="100"
-                          value={editedValues[goal.id]?.weightage || ''}
+                          value={editedValues[goal.id]?.weightage || ""}
                           onChange={(e) =>
                             setEditedValues({
                               ...editedValues,
@@ -534,7 +639,9 @@ export const TeamGoalReview: React.FC = () => {
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                         />
                       ) : (
-                        <p className="text-sm text-gray-900">{goal.weightage}%</p>
+                        <p className="text-sm text-gray-900">
+                          {goal.weightage}%
+                        </p>
                       )}
                     </div>
                   </div>
@@ -595,9 +702,12 @@ export const TeamGoalReview: React.FC = () => {
       {showReturnModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Return Goal to Employee</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Return Goal to Employee
+            </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Please provide a comment explaining why this goal is being returned:
+              Please provide a comment explaining why this goal is being
+              returned:
             </p>
             <textarea
               value={returnComment}
@@ -610,7 +720,7 @@ export const TeamGoalReview: React.FC = () => {
               <button
                 onClick={() => {
                   setShowReturnModal(false);
-                  setReturnComment('');
+                  setReturnComment("");
                   setGoalToReturn(null);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
@@ -622,7 +732,7 @@ export const TeamGoalReview: React.FC = () => {
                 disabled={processing || !returnComment.trim()}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {processing ? 'Returning...' : 'Return Goal'}
+                {processing ? "Returning..." : "Return Goal"}
               </button>
             </div>
           </div>
