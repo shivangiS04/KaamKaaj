@@ -12,9 +12,10 @@ KaamKaaj runs at ₹0/month on Vercel free tier and Supabase free tier, supporti
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS
 - **Backend**: Supabase (PostgreSQL + Row-Level Security + Auth)
+- **Serverless API**: Vercel Functions (`/api/send-email`) for secure server-side integrations
 - **Charts**: Recharts
-- **Hosting**: Vercel (frontend)
-- **Email**: Resend.com (bonus feature)
+- **Hosting**: Vercel
+- **Email**: Resend API via Vercel serverless function
 
 ## Features
 
@@ -40,11 +41,12 @@ KaamKaaj runs at ₹0/month on Vercel free tier and Supabase free tier, supporti
 
 ### Advanced Features
 - Shared goals (push goals to multiple employees)
-- Check-in schedule enforcement (quarterly windows)
+- Check-in schedule enforcement with Admin-managed Q1/Q2/Q3/Q4 toggles
 - Row-Level Security (RLS) for data access control
 - Automatic audit logging for all changes
-- Analytics dashboard with charts (bonus)
-- Email notifications (bonus)
+- Analytics dashboard with Recharts, including QoQ achievement trends
+- Email notifications through Resend for goal submission, approval, and return workflows
+- Dark/light mode toggle using Tailwind CSS v4 class-based dark variant
 
 ## Demo Credentials
 
@@ -106,7 +108,8 @@ KaamKaaj runs at ₹0/month on Vercel free tier and Supabase free tier, supporti
 │   │   └── AuthContext.tsx
 │   ├── hooks/               # Custom React hooks
 │   ├── lib/                 # Third-party integrations
-│   │   └── supabase.ts
+│   │   ├── supabase.ts
+│   │   └── email.ts         # Client email helper + Resend templates
 │   ├── pages/               # Route components
 │   │   ├── Login.tsx
 │   │   ├── EmployeeDashboard.tsx
@@ -121,6 +124,8 @@ KaamKaaj runs at ₹0/month on Vercel free tier and Supabase free tier, supporti
 │   │   └── toast.ts
 │   ├── App.tsx
 │   └── main.tsx
+├── api/
+│   └── send-email.ts        # Vercel serverless function for Resend API
 ├── supabase/
 │   ├── schema.sql           # Database schema with RLS
 │   └── seed.sql             # Seed data script
@@ -172,9 +177,16 @@ Create `.env` file in the root directory:
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+RESEND_API_KEY=your_resend_api_key
+VITE_DEMO_EMAIL=your_real_email_for_demo_account_redirects
 ```
 
 **IMPORTANT**: Ensure there are no spaces around the `=` sign in the `.env` file.
+
+Email notes:
+- `RESEND_API_KEY` is server-side only and is used by `api/send-email.ts`.
+- Do **not** use `VITE_RESEND_API_KEY`; that would expose the Resend key to the browser.
+- `VITE_DEMO_EMAIL` is optional, but useful for demos. Any email ending in `@demo.com` is redirected to this real inbox before calling `/api/send-email`.
 
 ### 5. Run Development Server
 
@@ -280,6 +292,19 @@ vercel --prod
 Set environment variables in Vercel dashboard:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `RESEND_API_KEY` (server-side only; no `VITE_` prefix)
+- `VITE_DEMO_EMAIL` (optional demo redirect address)
+
+`vercel.json` keeps API routes and SPA routing working together:
+
+```json
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
 
 ## Validation Rules
 
@@ -295,6 +320,7 @@ Set environment variables in Vercel dashboard:
 
 - Row-Level Security (RLS) enforced on all tables
 - No admin keys exposed on frontend
+- Resend API key is kept server-side in Vercel Functions via `RESEND_API_KEY`
 - Role-based access control
 - Audit logging for all critical changes
 - Protected routes with authentication checks
@@ -335,6 +361,15 @@ Achievement reports include:
 - Ensure users were created via Supabase Dashboard with "Auto Confirm User" enabled
 - Run `supabase/sync_profiles.sql` to sync profile IDs with auth.users IDs
 - Check that there are no spaces in `.env` file around the `=` sign
+
+### Email notifications not sending
+- Confirm `RESEND_API_KEY` exists in Vercel environment variables without the `VITE_` prefix
+- Confirm `api/send-email.ts` is deployed and reachable at `/api/send-email`
+- Check browser console logs from `sendEmail()` and workflow handlers:
+  - goal submission in `GoalCreation.tsx`
+  - goal approval and return in `TeamGoalReview.tsx`
+- If using demo accounts like `manager1@demo.com`, set `VITE_DEMO_EMAIL` so emails redirect to a real inbox
+- Resend's default `onboarding@resend.dev` sender may only deliver to verified/test recipients unless a domain is verified in Resend
 
 ## License
 
