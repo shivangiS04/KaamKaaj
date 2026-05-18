@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { ArrowLeft, UserPlus, Edit2, Save, X } from 'lucide-react';
 import { toast } from '../utils/toast';
 import { PageHeaderSkeleton, TableSkeleton } from '../components/PageSkeletons';
+import { NotificationBell } from '../components/NotificationBell';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface Profile {
   id: string;
@@ -144,27 +146,31 @@ export const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate('/admin')}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 <ArrowLeft className="h-6 w-6" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">User Management</h1>
             </div>
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              <UserPlus className="h-5 w-5 mr-2" />
-              Invite User
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <NotificationBell />
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+              >
+                <UserPlus className="h-5 w-5 mr-2" />
+                Invite User
+              </button>
+            </div>
           </div>
         </div>
       </header>

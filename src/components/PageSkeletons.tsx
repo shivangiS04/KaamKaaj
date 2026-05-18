@@ -3,7 +3,7 @@ import { SkeletonBlock } from './Skeleton';
 
 export const PageHeaderSkeleton: React.FC<{ withAction?: boolean }> = ({ withAction }) => {
   return (
-    <header className="bg-white shadow">
+    <header className="bg-white shadow dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -119,4 +119,3 @@ export const TableSkeleton: React.FC<{ columns?: number; rows?: number; withHead
     </div>
   );
 };
-

@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { ArrowLeft, User, CheckCircle, XCircle, Edit2, Save } from 'lucide-react';
 import { toast } from '../utils/toast';
 import { PageHeaderSkeleton, ListRowsSkeleton } from '../components/PageSkeletons';
+import { NotificationBell } from '../components/NotificationBell';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface Employee {
   id: string;
@@ -34,7 +36,7 @@ interface EmployeeGoals {
 
 export const TeamGoalReview: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [employeeGoals, setEmployeeGoals] = useState<EmployeeGoals[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [editingGoal, setEditingGoal] = useState<string | null>(null);
@@ -44,6 +46,24 @@ export const TeamGoalReview: React.FC = () => {
   const [goalToReturn, setGoalToReturn] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+
+  const managerName = profile?.name || 'Your manager';
+
+  const createNotification = async ({
+    userId,
+    message,
+    metadata,
+  }: {
+    userId: string;
+    message: string;
+    metadata: Record<string, unknown>;
+  }) => {
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      message,
+      metadata,
+    });
+  };
 
   useEffect(() => {
     fetchTeamGoals();
@@ -140,6 +160,23 @@ export const TeamGoalReview: React.FC = () => {
       if (error) throw error;
 
       try {
+        const { data } = await supabase.from('goals').select('id, employee_id, title').eq('id', goalId).single();
+        if (data?.employee_id) {
+          await createNotification({
+            userId: data.employee_id,
+            message: `Your goal was approved by ${managerName}`,
+            metadata: {
+              goal_id: data.id,
+              goal_title: data.title,
+              status: 'approved',
+              manager_name: managerName,
+            },
+          });
+        }
+      } catch {
+      }
+
+      try {
         const { error: auditError } = await supabase.from('audit_logs').insert({
           table_name: 'goals',
           record_id: goalId,
@@ -187,6 +224,29 @@ export const TeamGoalReview: React.FC = () => {
       if (error) throw error;
 
       try {
+        const { data: goals } = await supabase
+          .from('goals')
+          .select('id, employee_id, title')
+          .in('id', goalIds);
+        const rows = (goals || [])
+          .filter((g: any) => Boolean(g.employee_id))
+          .map((g: any) => ({
+            user_id: g.employee_id,
+            message: `Your goal was approved by ${managerName}`,
+            metadata: {
+              goal_id: g.id,
+              goal_title: g.title,
+              status: 'approved',
+              manager_name: managerName,
+            },
+          }));
+        if (rows.length > 0) {
+          await supabase.from('notifications').insert(rows);
+        }
+      } catch {
+      }
+
+      try {
         for (const goalId of goalIds) {
           const { error: auditError } = await supabase.from('audit_logs').insert({
             table_name: 'goals',
@@ -230,6 +290,28 @@ export const TeamGoalReview: React.FC = () => {
         .eq('id', goalToReturn);
 
       if (error) throw error;
+
+      try {
+        const { data } = await supabase
+          .from('goals')
+          .select('id, employee_id, title')
+          .eq('id', goalToReturn)
+          .single();
+        if (data?.employee_id) {
+          await createNotification({
+            userId: data.employee_id,
+            message: `Your goal was returned by ${managerName}`,
+            metadata: {
+              goal_id: data.id,
+              goal_title: data.title,
+              status: 'returned',
+              manager_name: managerName,
+              manager_comment: returnComment,
+            },
+          });
+        }
+      } catch {
+      }
 
       try {
         const { error: auditError } = await supabase.from('audit_logs').insert({
@@ -278,18 +360,24 @@ export const TeamGoalReview: React.FC = () => {
   const selectedEmployeeData = employeeGoals.find((eg) => eg.employee.id === selectedEmployee);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate('/manager')}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">Team Goal Review</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/manager')}
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Team Goal Review</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <NotificationBell />
+            </div>
           </div>
         </div>
       </header>

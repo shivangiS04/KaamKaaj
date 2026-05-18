@@ -6,6 +6,8 @@ import { ArrowLeft, Share2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { ShareGoalModal } from '../components/ShareGoalModal';
 import { toast } from '../utils/toast';
 import { PageHeaderSkeleton, CardListSkeleton } from '../components/PageSkeletons';
+import { NotificationBell } from '../components/NotificationBell';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface Goal {
   id: string;
@@ -134,14 +136,24 @@ export const ApprovedGoals: React.FC<ApprovedGoalsProps> = ({ backPath, isAdmin 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <header className="bg-white shadow dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-4">
-            <button type="button" onClick={() => navigate(backPath)} className="text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">Approved Goals — Share</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                onClick={() => navigate(backPath)}
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-6 w-6" />
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Approved Goals — Share</h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <NotificationBell />
+            </div>
           </div>
         </div>
       </header>

@@ -102,6 +102,16 @@ CREATE TABLE audit_logs (
     changed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 8. NOTIFICATIONS TABLE
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    metadata JSONB,
+    read_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ROW LEVEL SECURITY POLICIES
 
 -- Enable RLS on all tables
@@ -112,6 +122,7 @@ ALTER TABLE shared_goal_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE checkin_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- PROFILES RLS POLICIES
 -- Users can view their own profile
@@ -410,6 +421,33 @@ CREATE POLICY "Admins can insert audit logs" ON audit_logs
         )
     );
 
+-- NOTIFICATIONS RLS POLICIES
+-- Users can view their own notifications
+CREATE POLICY "Users can view own notifications" ON notifications
+    FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can update (mark read) their own notifications
+CREATE POLICY "Users can update own notifications" ON notifications
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Managers can insert notifications for their team members
+CREATE POLICY "Managers can insert team notifications" ON notifications
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'manager'
+        ) AND user_id IN (
+            SELECT id FROM profiles WHERE manager_id = auth.uid()
+        )
+    );
+
+-- Admins can insert notifications for anyone
+CREATE POLICY "Admins can insert notifications" ON notifications
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
 -- Create indexes for performance
 CREATE INDEX idx_goals_employee_id ON goals(employee_id);
 CREATE INDEX idx_goals_goal_cycle_id ON goals(goal_cycle_id);
@@ -421,6 +459,8 @@ CREATE INDEX idx_shared_goal_assignments_assigned_to ON shared_goal_assignments(
 CREATE INDEX idx_profiles_manager_id ON profiles(manager_id);
 CREATE INDEX idx_audit_logs_table_name ON audit_logs(table_name);
 CREATE INDEX idx_audit_logs_changed_at ON audit_logs(changed_at);
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_read_at ON notifications(read_at);
 
 -- Create function to automatically create profile on user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

@@ -7,6 +7,8 @@ import type { CsvColumn } from '../utils/csvExport';
 import { PageHeaderSkeleton, FiltersSkeleton, TableSkeleton } from '../components/PageSkeletons';
 import { exportToCSV, formatDateForCSV, formatNumberForCSV } from '../utils/csvExport';
 import { formatScore } from '../utils/scoreCalculator';
+import { NotificationBell } from '../components/NotificationBell';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface AchievementReportRow {
   employee_name: string;
@@ -263,28 +265,32 @@ export const AchievementReport: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate('/admin')}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 <ArrowLeft className="h-6 w-6" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">Achievement Report</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Achievement Report</h1>
             </div>
-            <button
-              onClick={handleExportCSV}
-              disabled={filteredData.length === 0}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Export CSV
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <NotificationBell />
+              <button
+                onClick={handleExportCSV}
+                disabled={filteredData.length === 0}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Export CSV
+              </button>
+            </div>
           </div>
         </div>
       </header>

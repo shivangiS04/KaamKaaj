@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { LogOut, Users, CheckSquare, FileCheck, MessageSquare, Share2 } from 'lucide-react';
+import { NotificationBell } from '../components/NotificationBell';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export const ManagerDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -56,17 +58,19 @@ export const ManagerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Manager Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Manager Dashboard</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {profile?.name}</span>
+              <span className="text-gray-700 dark:text-gray-300">Welcome, {profile?.name}</span>
+              <ThemeToggle />
+              <NotificationBell />
               <button
                 onClick={signOut}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Sign Out</span>
