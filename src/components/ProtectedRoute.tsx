@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { SkeletonBlock } from './Skeleton';
 
 type UserRole = 'employee' | 'manager' | 'admin';
 
@@ -15,8 +16,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 py-12 space-y-4">
+          <SkeletonBlock className="h-8 w-64" />
+          <SkeletonBlock className="h-24 w-full" />
+          <SkeletonBlock className="h-24 w-full" />
+          <SkeletonBlock className="h-24 w-full" />
+        </div>
       </div>
     );
   }

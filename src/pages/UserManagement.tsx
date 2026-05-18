@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, UserPlus, Edit2, Save, X } from 'lucide-react';
 import { toast } from '../utils/toast';
+import { PageHeaderSkeleton, TableSkeleton } from '../components/PageSkeletons';
 
 interface Profile {
   id: string;
@@ -133,8 +134,11 @@ export const UserManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <PageHeaderSkeleton withAction />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <TableSkeleton columns={5} rows={10} />
+        </main>
       </div>
     );
   }

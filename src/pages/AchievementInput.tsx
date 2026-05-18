@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { calculateScore } from '../utils/scoreCalculator';
 import { validateCheckinWindow } from '../utils/checkinWindow';
+import { SkeletonBlock } from '../components/Skeleton';
+import { PageHeaderSkeleton } from '../components/PageSkeletons';
 
 interface Goal {
   id: string;
@@ -193,8 +195,50 @@ export const AchievementInput: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <PageHeaderSkeleton />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6 bg-white rounded-lg shadow p-4 space-y-3">
+            <SkeletonBlock className="h-4 w-28" />
+            <div className="flex space-x-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-10 w-16" />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <SkeletonBlock className="h-5 w-2/3" />
+                    <SkeletonBlock className="h-4 w-1/2" />
+                  </div>
+                  <SkeletonBlock className="h-6 w-20" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-4 w-24" />
+                    <SkeletonBlock className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-4 w-24" />
+                    <SkeletonBlock className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <SkeletonBlock className="h-4 w-24" />
+                    <SkeletonBlock className="h-10 w-full" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <SkeletonBlock className="h-10 w-40" />
+          </div>
+        </main>
       </div>
     );
   }

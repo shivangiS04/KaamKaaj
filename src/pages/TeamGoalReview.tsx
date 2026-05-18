@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, User, CheckCircle, XCircle, Edit2, Save } from 'lucide-react';
 import { toast } from '../utils/toast';
+import { PageHeaderSkeleton, ListRowsSkeleton } from '../components/PageSkeletons';
 
 interface Employee {
   id: string;
@@ -265,8 +266,11 @@ export const TeamGoalReview: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <PageHeaderSkeleton />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ListRowsSkeleton rows={6} />
+        </main>
       </div>
     );
   }

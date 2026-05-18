@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { ArrowLeft, Share2, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { ShareGoalModal } from '../components/ShareGoalModal';
 import { toast } from '../utils/toast';
+import { PageHeaderSkeleton, CardListSkeleton } from '../components/PageSkeletons';
 
 interface Goal {
   id: string;
@@ -123,8 +124,11 @@ export const ApprovedGoals: React.FC<ApprovedGoalsProps> = ({ backPath, isAdmin 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <PageHeaderSkeleton />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <CardListSkeleton count={4} />
+        </main>
       </div>
     );
   }

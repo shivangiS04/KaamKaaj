@@ -4,6 +4,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { LogOut, Target, CheckSquare, Plus } from 'lucide-react';
 import { toast } from '../utils/toast';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
+const AREA_COLORS = ['#4f46e5', '#16a34a', '#f59e0b', '#ef4444', '#7c3aed', '#0f766e'];
+
+type PlannedVsActualDatum = { goal: string; planned: number; actual: number };
+type PlannedVsActualTooltipItem = {
+  name?: string | number;
+  value?: string | number | readonly (string | number)[];
+  color?: string;
+  payload?: PlannedVsActualDatum;
+};
 
 export const EmployeeDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +35,8 @@ export const EmployeeDashboard: React.FC = () => {
   const [achievementsCount, setAchievementsCount] = useState(0);
   const [statusLabel, setStatusLabel] = useState('No Goals');
   const [previewGoals, setPreviewGoals] = useState<{ id: string; title: string; status: string }[]>([]);
+  const [plannedVsActual, setPlannedVsActual] = useState<PlannedVsActualDatum[]>([]);
+  const [goalsByThrustArea, setGoalsByThrustArea] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -20,7 +45,7 @@ export const EmployeeDashboard: React.FC = () => {
       try {
         const { data: goals, error: goalsError } = await supabase
           .from('goals')
-          .select('id, title, status, updated_at')
+          .select('id, title, status, updated_at, thrust_area, uom_type, target_value')
           .eq('employee_id', profile.id)
           .order('updated_at', { ascending: false });
 
@@ -34,6 +59,8 @@ export const EmployeeDashboard: React.FC = () => {
           setStatusLabel('No Goals');
           setAchievementsCount(0);
           setPreviewGoals([]);
+          setPlannedVsActual([]);
+          setGoalsByThrustArea([]);
           return;
         }
 
@@ -53,6 +80,45 @@ export const EmployeeDashboard: React.FC = () => {
 
         const uniqueGoalIds = new Set((achievements || []).map((a) => a.goal_id));
         setAchievementsCount(uniqueGoalIds.size);
+
+        const approvedGoals = (goals || []).filter((g) => g.status === 'approved');
+        const goalAreaCounts = new Map<string, number>();
+        approvedGoals.forEach((g) => {
+          goalAreaCounts.set(g.thrust_area, (goalAreaCounts.get(g.thrust_area) || 0) + 1);
+        });
+        setGoalsByThrustArea(
+          Array.from(goalAreaCounts.entries()).map(([name, value]) => ({ name, value }))
+        );
+
+        const numericGoals = approvedGoals.filter((g) => g.uom_type !== 'timeline');
+        const numericGoalIds = numericGoals.map((g) => g.id);
+        if (numericGoalIds.length === 0) {
+          setPlannedVsActual([]);
+          return;
+        }
+
+        const { data: q1Achievements, error: q1Error } = await supabase
+          .from('achievements')
+          .select('goal_id, actual_value')
+          .eq('quarter', 'Q1')
+          .in('goal_id', numericGoalIds);
+
+        if (q1Error) throw q1Error;
+
+        const actualByGoalId = new Map<string, number>();
+        (q1Achievements || []).forEach((a) => {
+          actualByGoalId.set(a.goal_id, (actualByGoalId.get(a.goal_id) ?? 0) + (a.actual_value ?? 0));
+        });
+
+        setPlannedVsActual(
+          numericGoals
+            .map((g) => ({
+              goal: g.title,
+              planned: g.uom_type === 'zero' ? 0 : g.target_value ?? 0,
+              actual: actualByGoalId.get(g.id) ?? 0,
+            }))
+            .sort((a, b) => b.planned - a.planned)
+        );
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : 'Failed to load dashboard stats');
       }
@@ -60,6 +126,40 @@ export const EmployeeDashboard: React.FC = () => {
 
     fetchStats();
   }, [profile]);
+
+  const totalGoalsByArea = goalsByThrustArea.reduce((sum, g) => sum + g.value, 0);
+
+  const truncate = (value: string, max: number) => {
+    if (value.length <= max) return value;
+    return `${value.slice(0, Math.max(0, max - 1))}…`;
+  };
+
+  const plannedVsActualTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: readonly PlannedVsActualTooltipItem[];
+  }) => {
+    if (!active || !payload || payload.length === 0) return null;
+
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+        <div className="text-xs font-medium text-gray-900 mb-1">{payload[0]?.payload?.goal}</div>
+        <div className="space-y-1">
+          {payload.map((p, i) => (
+            <div key={i} className="flex items-center justify-between gap-6 text-xs">
+              <span className="flex items-center gap-2 text-gray-700">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                {p.name}
+              </span>
+              <span className="font-medium text-gray-900">{p.value ?? 0}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -123,6 +223,83 @@ export const EmployeeDashboard: React.FC = () => {
                 <p className="text-2xl font-semibold text-gray-900">{statusLabel}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Planned vs Actual (Q1)</h2>
+            {plannedVsActual.length === 0 ? (
+              <div className="text-sm text-gray-500">No approved numeric goals found.</div>
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={plannedVsActual} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="plannedGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#818cf8" />
+                        <stop offset="100%" stopColor="#4f46e5" />
+                      </linearGradient>
+                      <linearGradient id="actualGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#4ade80" />
+                        <stop offset="100%" stopColor="#16a34a" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis
+                      type="category"
+                      dataKey="goal"
+                      width={160}
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(v) => truncate(String(v), 22)}
+                    />
+                    <Tooltip content={plannedVsActualTooltip} />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Bar dataKey="planned" fill="url(#plannedGradient)" name="Planned" radius={[0, 8, 8, 0]} barSize={14} />
+                    <Bar dataKey="actual" fill="url(#actualGradient)" name="Actual" radius={[0, 8, 8, 0]} barSize={14} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Goals by Thrust Area</h2>
+            {goalsByThrustArea.length === 0 ? (
+              <div className="text-sm text-gray-500">No approved goals found.</div>
+            ) : (
+              <div className="h-72 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={goalsByThrustArea}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      labelLine={false}
+                      label={({ percent }) => `${Math.round((percent ?? 0) * 100)}%`}
+                    >
+                      {goalsByThrustArea.map((_entry, index) => (
+                        <Cell key={index} fill={AREA_COLORS[index % AREA_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">{totalGoalsByArea}</div>
+                    <div className="text-xs text-gray-500">Approved goals</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
