@@ -1,5 +1,10 @@
 # KaamKaaj Architecture
 
+## Project Links
+
+- **GitHub Repository:** https://github.com/shivangiS04/KaamKaaj
+- **Deployed Application:** https://kaam-kaaj-blue.vercel.app/login
+
 ```mermaid
 graph TB
     subgraph Client["🖥️ Client Layer (Browser)"]
