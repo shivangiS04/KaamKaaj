@@ -210,6 +210,31 @@ export const TeamGoalReview: React.FC = () => {
         );
       }
 
+      // Email the employee for single-goal approval — use data already in state
+      try {
+        const ownerData = employeeGoals.find((eg) =>
+          eg.goals.some((g) => g.id === goalId),
+        );
+        const employeeEmail = ownerData?.employee.email;
+
+        if (employeeEmail) {
+          const { subject, html } = emailTemplates.goalApproved(managerName);
+          console.log("Attempting to send approval email...", {
+            to: employeeEmail,
+            subject,
+          });
+          const emailResult = await sendEmail(employeeEmail, subject, html);
+          console.log("Approval email result:", emailResult);
+        } else {
+          console.log("Skipping approval email: employee email not found");
+        }
+      } catch (emailErr) {
+        console.error(
+          "[TeamGoalReview] Single approval email failed:",
+          emailErr,
+        );
+      }
+
       toast.success("Goal approved successfully");
       fetchTeamGoals();
     } catch (err: any) {
@@ -293,7 +318,18 @@ export const TeamGoalReview: React.FC = () => {
       try {
         if (employeeData.employee.email) {
           const { subject, html } = emailTemplates.goalApproved(managerName);
-          await sendEmail(employeeData.employee.email, subject, html);
+          console.log("Attempting to send approve-all email...", {
+            to: employeeData.employee.email,
+            subject,
+          });
+          const emailResult = await sendEmail(
+            employeeData.employee.email,
+            subject,
+            html,
+          );
+          console.log("Approve-all email result:", emailResult);
+        } else {
+          console.log("Skipping approve-all email: employee email not found");
         }
       } catch (emailErr) {
         console.error("[TeamGoalReview] Approval email failed:", emailErr);
@@ -385,7 +421,15 @@ export const TeamGoalReview: React.FC = () => {
             goalTitle,
             returnComment,
           );
-          await sendEmail(employeeEmail, subject, html);
+          console.log("Attempting to send return email...", {
+            to: employeeEmail,
+            subject,
+            goalTitle,
+          });
+          const emailResult = await sendEmail(employeeEmail, subject, html);
+          console.log("Return email result:", emailResult);
+        } else {
+          console.log("Skipping return email: employee email not found");
         }
       } catch (emailErr) {
         console.error("[TeamGoalReview] Return email failed:", emailErr);

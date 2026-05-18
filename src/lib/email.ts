@@ -20,7 +20,9 @@ export async function sendEmail(
   subject: string,
   html: string,
 ): Promise<{ success: boolean }> {
+  console.log("sendEmail called with:", to, subject);
   const actualTo = resolveEmail(to);
+  console.log("sendEmail resolved recipient:", actualTo);
 
   try {
     const response = await fetch("/api/send-email", {

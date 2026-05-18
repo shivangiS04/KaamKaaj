@@ -263,7 +263,20 @@ export const GoalCreation: React.FC = () => {
               employeeName,
               goalsToInsert.length,
             );
-            await sendEmail(managerData.email, subject, html);
+            console.log("Attempting to send email...", {
+              to: managerData.email,
+              subject,
+            });
+            const emailResult = await sendEmail(
+              managerData.email,
+              subject,
+              html,
+            );
+            console.log("Email result:", emailResult);
+          } else {
+            console.log(
+              "Skipping goal submission email: manager email not found",
+            );
           }
         }
       } catch (emailErr) {
