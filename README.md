@@ -183,11 +183,6 @@ VITE_DEMO_EMAIL=your_real_email_for_demo_account_redirects
 
 **IMPORTANT**: Ensure there are no spaces around the `=` sign in the `.env` file.
 
-Email notes:
-- `RESEND_API_KEY` is server-side only and is used by `api/send-email.ts`.
-- Do **not** use `VITE_RESEND_API_KEY`; that would expose the Resend key to the browser.
-- `VITE_DEMO_EMAIL` is optional, but useful for demos. Any email ending in `@demo.com` is redirected to this real inbox before calling `/api/send-email`.
-
 ### 5. Run Development Server
 
 ```bash
@@ -361,15 +356,6 @@ Achievement reports include:
 - Ensure users were created via Supabase Dashboard with "Auto Confirm User" enabled
 - Run `supabase/sync_profiles.sql` to sync profile IDs with auth.users IDs
 - Check that there are no spaces in `.env` file around the `=` sign
-
-### Email notifications not sending
-- Confirm `RESEND_API_KEY` exists in Vercel environment variables without the `VITE_` prefix
-- Confirm `api/send-email.ts` is deployed and reachable at `/api/send-email`
-- Check browser console logs from `sendEmail()` and workflow handlers:
-  - goal submission in `GoalCreation.tsx`
-  - goal approval and return in `TeamGoalReview.tsx`
-- If using demo accounts like `manager1@demo.com`, set `VITE_DEMO_EMAIL` so emails redirect to a real inbox
-- Resend's default `onboarding@resend.dev` sender may only deliver to verified/test recipients unless a domain is verified in Resend
 
 ## License
 
